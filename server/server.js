@@ -15,7 +15,7 @@ app.use(
   cors({
     origin: [
       "http://localhost:5173",
-      process.env.FRONTED_URL,
+      "https://personal-finance-tracker-eta-sable.vercel.app",
     ],
     credentials: true,
   })
