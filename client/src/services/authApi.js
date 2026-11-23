@@ -23,7 +23,7 @@ export const register = async (formData) => {
 };
 
 export const login = async (formData) => {
-  const res = await fetch(`${BASE_URL}/login`, {
+  const res = await fetch(`${BASE_URL}/`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

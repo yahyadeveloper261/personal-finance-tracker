@@ -59,7 +59,7 @@ export default function Register() {
       setConfirmPassword("");
 
       setTimeout(() => {
-        navigate("/login");
+        navigate("/");
       }, 1500);
     } catch (error) {
       setError(error.message || "Registration failed. Please try again.");
@@ -315,7 +315,7 @@ export default function Register() {
                 Already have an account?{" "}
                 <button
                   type="button"
-                  onClick={() => navigate("/login")}
+                  onClick={() => navigate("/")}
                   className="font-bold text-slate-900 hover:text-blue-700"
                 >
                   Login

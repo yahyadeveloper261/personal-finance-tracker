@@ -54,7 +54,7 @@ export default function Sidebar({ open, setOpen }) {
 
   const handleLogout = () => {
     localStorage.removeItem("token");
-    navigate("/login");
+    navigate("/");
   };
 
   return (

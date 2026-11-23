@@ -25,7 +25,7 @@ export default function App() {
         </Route>
 
         {/* Auth Pages */}
-        <Route path="/login" element={<Login />} />
+        <Route path="/" element={<Login />} />
         <Route path="/register" element={<Register />} />
       </Routes>
     </BrowserRouter>
