@@ -13,9 +13,12 @@ app.use(cookieParser());
 
 app.use(
   cors({
-    origin: process.env.FRONTED_URL,
+    origin: [
+      "http://localhost:5173",
+      process.env.FRONTED_URL,
+    ],
     credentials: true,
-  }),
+  })
 );
 
 app.use("/api", router);
@@ -24,13 +27,12 @@ app.use("/api/notifications", notification);
 const startServer = async () => {
   try {
     await dbConnection();
+const PORT = process.env.PORT || 5000;
 
-    const PORT = process.env.PORT || 300;
-    const HOST = process.env.HOST || "127.0.0.1";
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server running on port ${PORT}`);
+});
 
-    app.listen(PORT, () => {
-      console.log(`http://${HOST}:${PORT}`);
-    });
   } catch (error) {
     console.log("Server failed:", error.message);
   }
