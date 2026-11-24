@@ -1,4 +1,5 @@
 import Budget from "../models/Budget.js";
+
 export const createBudget = async (req, res) => {
   try {
     const { category, amount, month, year } = req.body;
@@ -24,37 +25,20 @@ export const createBudget = async (req, res) => {
   }
 };
 
-
-
 export const getBudget = async (req, res) => {
   try {
     const now = new Date();
-
-    const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
-    const limit = 5;
-    const skip = (page - 1) * limit;
-
-    const filter = {
+    const totalBudgets = await Budget.countDocuments({ user: req.user.id });
+    const budget = await Budget.find({
       user: req.user.id,
       month: now.getMonth() + 1,
       year: now.getFullYear(),
-    };
-
-    const [budget, totalBudgets] = await Promise.all([
-      Budget.find(filter)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit),
-
-      Budget.countDocuments(filter),
-    ]);
+    });
 
     return res.status(200).json({
       success: true,
       budget,
       totalBudgets,
-      currentPage: page,
-      totalPages: Math.ceil(totalBudgets / limit),
     });
   } catch (error) {
     return res.status(500).json({
@@ -63,7 +47,6 @@ export const getBudget = async (req, res) => {
     });
   }
 };
-
 
 export const deleteBudget = async (req, res) => {
   try {

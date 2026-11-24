@@ -25,9 +25,6 @@ export default function Budget() {
   const [amount, setAmount] = useState("");
   const [loading, setLoading] = useState(false);
   const [budget, setBudget] = useState([]);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [fetching, setFetching] = useState(false);
   const navigate = useNavigate();
   const { id } = useParams();
   const formRef = useRef(null);
@@ -63,21 +60,15 @@ export default function Budget() {
   useEffect(() => {
     const fetchBudgets = async () => {
       try {
-        setFetching(true);
-
-        const res = await getBudget(currentPage, 5);
-
+        const res = await getBudget();
         setBudget(res?.budget || []);
-        setTotalPages(res?.totalPages || 1);
       } catch (error) {
         alert(error.message || "Failed to fetch budgets");
-      } finally {
-        setFetching(false);
       }
     };
 
     fetchBudgets();
-  }, [currentPage]);
+  }, []);
   // Budget Creation
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -392,35 +383,6 @@ export default function Budget() {
             </tbody>
           </table>
         </div>
-
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between gap-3 p-4 border-t border-slate-100">
-            <button
-              type="button"
-              onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-              disabled={currentPage === 1 || fetching}
-              className="px-4 py-2 rounded-lg border border-slate-200 text-sm disabled:opacity-40"
-            >
-              Previous
-            </button>
-
-            <span className="text-sm text-slate-600">
-              Page {currentPage} of {totalPages}
-            </span>
-
-            <button
-              type="button"
-              onClick={() =>
-                setCurrentPage((prev) => Math.min(totalPages, prev + 1))
-              }
-              disabled={currentPage === totalPages || fetching}
-              className="px-4 py-2 rounded-lg border border-slate-200 text-sm disabled:opacity-40"
-            >
-              Next
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );
