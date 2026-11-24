@@ -20,6 +20,26 @@ A full-stack Personal Finance Tracker built with the MERN stack. This applicatio
 - Profile Image Upload using Cloudinary
 - Responsive UI for Mobile, Tablet and Desktop
 
+## Screenshorts
+
+### dashbaord
+![alt text](Screenshot_24-11-2026_73431_personal-finance-tracker-eta-sable.vercel.app.jpeg)
+
+### Expense Management
+![alt text](Screenshot_24-11-2026_74133_personal-finance-tracker-eta-sable.vercel.app.jpeg)
+
+### Expense Management
+![alt text](Screenshot_24-11-2026_73457_personal-finance-tracker-eta-sable.vercel.app.jpeg)
+
+### Transactions
+![alt text](Screenshot_24-11-2026_73755_personal-finance-tracker-eta-sable.vercel.app.jpeg)
+
+### Budget Management
+![alt text](Screenshot_24-11-2026_73623_personal-finance-tracker-eta-sable.vercel.app.jpeg)
+
+### Settings
+![alt text](Screenshot_24-11-2026_73852_personal-finance-tracker-eta-sable.vercel.app.jpeg)
+
 ## 🛠️ Tech Stack
 
 ### Frontend
