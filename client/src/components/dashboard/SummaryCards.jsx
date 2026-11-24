@@ -4,7 +4,7 @@ import { ResponsiveContainer, LineChart, Line } from "recharts";
 
 export default function SummaryCards({ summary }) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
+    <div className="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-5">
       {summary.map((item) => {
         const Icon = item.icon;
 

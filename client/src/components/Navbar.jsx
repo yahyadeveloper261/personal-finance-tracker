@@ -246,8 +246,7 @@ export default function Navbar({ setOpen }) {
             {/* Notification Dropdown */}
 
             {showNotifications && (
-              <div className="absolute right-0 top-14 z-50 w-[340px] overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-2xl shadow-slate-300/40 sm:w-[390px]">
-                {/* Header */}
+              <div className="fixed right-3 top-[76px] z-[100] w-[calc(100vw-24px)] max-w-[390px] overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-2xl shadow-slate-300/40 sm:absolute sm:right-0 sm:top-14 sm:w-[390px]">
 
                 <div className="flex items-center justify-between border-b border-slate-100 px-4 py-4">
                   <div>
