@@ -14,6 +14,7 @@ app.use(cookieParser());
 app.use(
   cors({
     origin: [
+      "http://192.168.1.7:5173",
       "http://localhost:5173",
     process.env.FRONTED_URL,
     ],
