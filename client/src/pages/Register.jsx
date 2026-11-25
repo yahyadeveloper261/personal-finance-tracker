@@ -29,7 +29,6 @@ export default function Register() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const navigate = useNavigate();
-
   const handleRegister = async (e) => {
     e.preventDefault();
 

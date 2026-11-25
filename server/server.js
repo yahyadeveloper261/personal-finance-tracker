@@ -21,6 +21,13 @@ app.use(
   })
 );
 
+app.get("/test", (req, res) => {
+  res.send("Backend route working");
+});
+
+app.get("/api/test", (req, res) => {
+  res.send("API route working");
+});
 app.use("/api", router);
 app.use("/api/notifications", notification);
 

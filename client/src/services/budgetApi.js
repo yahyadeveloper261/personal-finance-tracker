@@ -13,8 +13,8 @@ export const createBudget = async (formData) => {
 };
 
 // Get Budget
-export const getBudget = async () => {
-  return await apiFetch(`${BASE_URL}/my/budgets`, {
+export const getBudget = async (page = 1, limit = 5) => {
+  return await apiFetch(`${BASE_URL}/my/budgets?page=${page}&limt=${limit}`, {
     method: "GET",
   });
 };

@@ -1,5 +1,5 @@
 import Budget from "../models/Budget.js";
-
+import mongoose from "mongoose";
 export const createBudget = async (req, res) => {
   try {
     const { category, amount, month, year } = req.body;
@@ -27,18 +27,47 @@ export const createBudget = async (req, res) => {
 
 export const getBudget = async (req, res) => {
   try {
+    const { page, limit } = req.query;
+    const currenPage = Number(page) || 1;
+    const itemPerPage = Number(limit) || 5;
+    const skip = (currenPage - 1) * itemPerPage;
+
     const now = new Date();
-    const totalBudgets = await Budget.countDocuments({ user: req.user.id });
-    const budget = await Budget.find({
+
+    const filter = {
       user: req.user.id,
       month: now.getMonth() + 1,
       year: now.getFullYear(),
-    });
+    };
+    const totalBudgets = await Budget.countDocuments(filter);
+    const totalPages = Math.ceil(totalBudgets / itemPerPage);
+    const budget = await Budget.find(filter)
+      .sort({ date: -1 })
+      .skip(skip)
+      .limit(itemPerPage);
+
+    const totalBudgetAmount = await Budget.aggregate([
+      {
+        $match: {
+          ...filter,
+          user: new mongoose.Types.ObjectId(req.user.id),
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: "$amount" },
+        },
+      },
+    ]);
+    const totalBudget = totalBudgetAmount[0]?.total || 0;
 
     return res.status(200).json({
       success: true,
       budget,
       totalBudgets,
+      totalBudget,
+      totalPages,
     });
   } catch (error) {
     return res.status(500).json({

@@ -25,6 +25,9 @@ export default function Budget() {
   const [amount, setAmount] = useState("");
   const [loading, setLoading] = useState(false);
   const [budget, setBudget] = useState([]);
+  const [totalBud, setTotalBud] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [page, setPage] = useState(1);
   const navigate = useNavigate();
   const { id } = useParams();
   const formRef = useRef(null);
@@ -43,8 +46,23 @@ export default function Budget() {
 
     const updation = async () => {
       try {
-        const res = await getBudget();
-        const match = res.budget.find((item) => item._id === id);
+        // Pehle current page par budget search karo
+        const res = await getBudget(page, 5);
+
+        let match = res.budget.find((item) => item._id === id);
+
+        // Agar current page par nahi mila to baqi pages check karo
+        if (!match) {
+          for (let p = 1; p <= res.totalPages; p++) {
+            if (p === page) continue;
+
+            const result = await getBudget(p, 5);
+
+            match = result.budget.find((item) => item._id === id);
+
+            if (match) break;
+          }
+        }
 
         if (match) {
           setCategory(match.category);
@@ -57,10 +75,13 @@ export default function Budget() {
 
     updation();
   }, [id]);
+
   useEffect(() => {
     const fetchBudgets = async () => {
       try {
-        const res = await getBudget();
+        const res = await getBudget(page, 5);
+        setTotalBud(res?.totalBudget);
+        setTotalPages(res?.totalPages);
         setBudget(res?.budget || []);
       } catch (error) {
         alert(error.message || "Failed to fetch budgets");
@@ -68,7 +89,7 @@ export default function Budget() {
     };
 
     fetchBudgets();
-  }, []);
+  }, [page]);
   // Budget Creation
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -98,8 +119,11 @@ export default function Budget() {
 
       setAmount("");
 
-      const updated = await getBudget();
+      const updated = await getBudget(page, 5);
+
       setBudget(updated?.budget || []);
+      setTotalBud(updated?.totalBudget || 0);
+      setTotalPages(updated?.totalPages || 1);
     } catch (error) {
       alert(error.message || "Failed to save budget");
     } finally {
@@ -107,11 +131,6 @@ export default function Budget() {
     }
   };
 
-  // Total Budget Calculation
-  const totalBudget = budget.reduce(
-    (total, item) => total + Number(item.amount || 0),
-    0,
-  );
   // Delete Budget
   const handleDelete = async (id) => {
     const confirmDelete = window.confirm(
@@ -160,7 +179,7 @@ export default function Budget() {
             </p>
 
             <h2 className="text-3xl font-bold mt-2">
-              Rs. {totalBudget.toLocaleString()}
+              Rs. {totalBud.toLocaleString()}
             </h2>
 
             <p className="text-emerald-100 text-xs mt-2">
@@ -382,6 +401,38 @@ export default function Budget() {
               )}
             </tbody>
           </table>
+        </div>
+        {/* Pagination */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-5 py-4 border-t border-slate-100">
+          {/* Page Info */}
+          <p className="text-sm text-slate-500">
+            Showing page{" "}
+            <span className="font-semibold text-slate-800">{page}</span> of{" "}
+            <span className="font-semibold text-slate-800">{totalPages}</span>
+          </p>
+
+          {/* Buttons */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setPage((prev) => prev - 1)}
+              disabled={page === 1}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:text-slate-600 disabled:hover:border-slate-200 transition-all"
+            >
+              ← Previous
+            </button>
+
+            <span className="min-w-10 h-10 flex items-center justify-center rounded-xl bg-emerald-600 text-white text-sm font-bold shadow-sm">
+              {page}
+            </span>
+
+            <button
+              onClick={() => setPage((prev) => prev + 1)}
+              disabled={page >= totalPages}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:text-slate-600 disabled:hover:border-slate-200 transition-all"
+            >
+              Next →
+            </button>
+          </div>
         </div>
       </div>
     </div>
