@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { Wallet, Mail, Eye, EyeOff, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { login } from "../services/authApi";
-
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

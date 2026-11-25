@@ -1,3 +1,4 @@
+
 import { Routes, Route, BrowserRouter } from "react-router-dom";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -8,9 +9,13 @@ import Budget from "./pages/Budget";
 import Income from "./pages/Income";
 import Expense from "./pages/Expense";
 import Settings from "./pages/Settings";
+import InstallApp from "./InstallApp";
+
 export default function App() {
   return (
     <BrowserRouter>
+      <InstallApp />
+
       <Routes>
         {/* Dashboard Layout */}
         <Route element={<DashboardLayout />}>
