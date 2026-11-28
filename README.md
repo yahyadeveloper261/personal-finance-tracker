@@ -27,21 +27,26 @@ A full-stack **Personal Finance Tracker** built with the MERN Stack. This applic
 ## 📸 Application Screenshots
 
 ### Dashboard
-![Dashboard](Screenshot_24-11-2026_73431_personal-finance-tracker-eta-sable.vercel.app.jpeg)
+
+![Dashboard](Screenshorts/Screenshot_24-11-2026_73431_personal-finance-tracker-eta-sable.vercel.app.jpeg)
 
 ### Expense Management
-![Expense Management](Screenshot_24-11-2026_74133_personal-finance-tracker-eta-sable.vercel.app.jpeg)
 
-![Expense Management](Screenshot_24-11-2026_73457_personal-finance-tracker-eta-sable.vercel.app.jpeg)
+![Expense Management](Screenshorts/Screenshot_24-11-2026_74133_personal-finance-tracker-eta-sable.vercel.app.jpeg)
+
+![Expense Management](Screenshorts/Screenshot_24-11-2026_73457_personal-finance-tracker-eta-sable.vercel.app.jpeg)
 
 ### Transactions
-![Transactions](Screenshot_24-11-2026_73755_personal-finance-tracker-eta-sable.vercel.app.jpeg)
+
+![Transactions](Screenshorts/Screenshot_24-11-2026_73755_personal-finance-tracker-eta-sable.vercel.app.jpeg)
 
 ### Budget Management
-![Budget Management](Screenshot_24-11-2026_73623_personal-finance-tracker-eta-sable.vercel.app.jpeg)
+
+![Budget Management](Screenshorts/Screenshot_24-11-2026_73623_personal-finance-tracker-eta-sable.vercel.app.jpeg)
 
 ### Settings
-![Settings](Screenshot_24-11-2026_73852_personal-finance-tracker-eta-sable.vercel.app.jpeg)
+
+![Settings](Screenshorts/Screenshot_24-11-2026_73852_personal-finance-tracker-eta-sable.vercel.app.jpeg)
 
 ## 📱 Responsive Design
 
@@ -50,49 +55,63 @@ The application is designed to provide a smooth experience across different scre
 ### 💻 Desktop
 
 #### Dashboard
-![Desktop Dashboard](destok.dashboard.png)
+
+![Desktop Dashboard](Screenshorts/destok.dashboard.png)
 
 #### Income
-![Desktop Income](destok.income.png)
+
+![Desktop Income](Screenshorts/destok.income.png)
 
 #### Expense
-![Desktop Expense](destok.expense.png)
+
+![Desktop Expense](Screenshorts/destok.expense.png)
 
 #### Budget
-![Desktop Budget](destok.budget.png)
+
+![Desktop Budget](Screenshorts/destok.budget.png)
 
 #### Transactions
-![Desktop Transactions](destok.transaction.png)
+
+![Desktop Transactions](Screenshorts/destok.transaction.png)
 
 #### Profile / Settings
-![Desktop Settings](destok.setting.png)
+
+![Desktop Settings](Screenshorts/destok.setting.png)
 
 ### 📱 Mobile
 
 #### Dashboard
-![Mobile Dashboard](m.dashbaord.png)
+
+![Mobile Dashboard](Screenshorts/m.dashbaord.png)
 
 #### Income
-![Mobile Income](m.income.png)
+
+![Mobile Income](Screenshorts/m.income.png)
 
 #### Expense
-![Mobile Expense](m.expense.png)
+
+![Mobile Expense](Screenshorts/m.expense.png)
 
 #### Budget
-![Mobile Budget](m.budget.png)
+
+![Mobile Budget](Screenshorts/m.budget.png)
 
 #### Transactions
-![Mobile Transactions](m.transaction.png)
+
+![Mobile Transactions](Screenshorts/m.transaction.png)
 
 #### Profile / Settings
-![Mobile Profile](m.profile,.png)
+
+![Mobile Profile](Screenshorts/m.profile,.png)
 
 #### Notifications
-![Mobile Notifications](m.notification.png)
+
+![Mobile Notifications](Screenshorts/m.notification.png)
 
 ## 🛠️ Tech Stack
 
 ### Frontend
+
 - React.js
 - React Router DOM
 - Tailwind CSS
@@ -101,6 +120,7 @@ The application is designed to provide a smooth experience across different scre
 - JavaScript
 
 ### Backend
+
 - Node.js
 - Express.js
 - MongoDB
@@ -131,6 +151,23 @@ personal-finance-tracker/
 │   ├── .env.example
 │   └── package.json
 │
+├── Screenshorts/
+│   ├── destok.dashboard.png
+│   ├── destok.income.png
+│   ├── destok.expense.png
+│   ├── destok.budget.png
+│   ├── destok.transaction.png
+│   ├── destok.setting.png
+│   ├── m.dashbaord.png
+│   ├── m.income.png
+│   ├── m.expense.png
+│   ├── m.budget.png
+│   ├── m.transaction.png
+│   ├── m.profile,.png
+│   ├── m.notification.png
+│   └── Application screenshots
+│
+├── .gitignore
 └── README.md
 ```
 
