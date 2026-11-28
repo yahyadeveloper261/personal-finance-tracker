@@ -1,47 +1,70 @@
 import React, { useState } from "react";
 import { Wallet, Mail, Eye, EyeOff, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useForm } from "react-hook-form";
 import { login } from "../services/authApi";
+
 export default function Login() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
+  const {
+    register,
+    handleSubmit,
+    setError: setFieldError,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm({
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
 
-    if (loading) return;
+  const handleLogin = async (formData) => {
     setError("");
     setSuccess("");
+
     try {
-      setLoading(true);
+      const data = await login({
+        email: formData.email.trim().toLowerCase(),
+        password: formData.password,
+      });
 
-      const formData = {
-        email: email.trim().toLowerCase(),
-        password,
-      };
-
-      const data = await login(formData);
       localStorage.setItem("token", data.token);
+
       setSuccess(data.message || "Login successfully!");
 
-      setEmail("");
-      setPassword("");
+      reset();
 
       setTimeout(() => {
         navigate("/dashboard");
-      }, 1500);
-    } catch (error) {
-      setError(error.message || "Login failed. Please try again.");
-    } finally {
-      setLoading(false);
+      }, 1000);
+    } catch (err) {
+      // Backend field-level errors
+      if (Array.isArray(err.errors) && err.errors.length > 0) {
+        err.errors.forEach((item) => {
+          if (item.field === "email" || item.field === "password") {
+            setFieldError(item.field, {
+              type: "server",
+              message: item.message,
+            });
+          }
+        });
+      } else {
+        setError(err.message || "Login failed. Please try again.");
+      }
     }
   };
+
+  const inputStyle =
+    "w-full pl-5 pr-12 py-3.5 bg-white/65 border border-white/80 rounded-full outline-none text-slate-800 placeholder:text-slate-600 focus:bg-white/90 focus:border-blue-400 focus:ring-4 focus:ring-blue-300/30 transition";
+
+  const invalidStyle =
+    "border-red-400 focus:border-red-500 focus:ring-red-300/30";
 
   return (
     <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-sky-400 via-cyan-300 to-emerald-200 flex items-center justify-center p-4">
@@ -110,8 +133,12 @@ export default function Login() {
                 </p>
               </div>
 
-              <form onSubmit={handleLogin} noValidate className="space-y-5">
-                {/* Error Message */}
+              <form
+                onSubmit={handleSubmit(handleLogin)}
+                noValidate
+                className="space-y-5"
+              >
+                {/* General Error */}
 
                 {error && (
                   <p className="text-red-600 bg-red-100 border border-red-200 p-3 rounded-xl text-sm text-center">
@@ -129,49 +156,87 @@ export default function Login() {
 
                 {/* Email */}
 
-                <div className="relative">
-                  <input
-                    type="email"
-                    placeholder="Username / Email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full pl-5 pr-12 py-3.5 bg-white/65 border border-white/80 rounded-full outline-none text-slate-800 placeholder:text-slate-600 focus:bg-white/90 focus:border-blue-400 focus:ring-4 focus:ring-blue-300/30 transition"
-                  />
+                <div>
+                  <div className="relative">
+                    <input
+                      type="email"
+                      placeholder="Username / Email"
+                      autoComplete="email"
+                      aria-invalid={!!errors.email}
+                      {...register("email", {
+                        required: "Email is required",
+                        setValueAs: (value) => value.trim().toLowerCase(),
+                        validate: (value) =>
+                          /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ||
+                          "Please enter a valid email address",
+                      })}
+                      className={`${inputStyle} ${
+                        errors.email ? invalidStyle : ""
+                      }`}
+                    />
 
-                  <Mail
-                    size={19}
-                    className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-700"
-                  />
+                    <Mail
+                      size={19}
+                      className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-700"
+                    />
+                  </div>
+
+                  {errors.email && (
+                    <p className="text-red-600 text-xs mt-2 ml-4">
+                      {errors.email.message}
+                    </p>
+                  )}
                 </div>
 
                 {/* Password */}
 
-                <div className="relative">
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full pl-5 pr-12 py-3.5 bg-white/65 border border-white/80 rounded-full outline-none text-slate-800 placeholder:text-slate-600 focus:bg-white/90 focus:border-blue-400 focus:ring-4 focus:ring-blue-300/30 transition"
-                  />
+                <div>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Password"
+                      autoComplete="current-password"
+                      aria-invalid={!!errors.password}
+                      {...register("password", {
+                        required: "Password is required",
+                        minLength: {
+                          value: 8,
+                          message: "Password must be at least 8 characters",
+                        },
+                        maxLength: {
+                          value: 20,
+                          message: "Password cannot exceed 20 characters",
+                        },
+                      })}
+                      className={`${inputStyle} ${
+                        errors.password ? invalidStyle : ""
+                      }`}
+                    />
 
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-700 hover:text-blue-600"
-                  >
-                    {showPassword ? <EyeOff size={19} /> : <Eye size={19} />}
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-700 hover:text-blue-600"
+                    >
+                      {showPassword ? <EyeOff size={19} /> : <Eye size={19} />}
+                    </button>
+                  </div>
+
+                  {errors.password && (
+                    <p className="text-red-600 text-xs mt-2 ml-4">
+                      {errors.password.message}
+                    </p>
+                  )}
                 </div>
 
                 {/* Sign In */}
 
                 <button
                   type="submit"
-                  disabled={loading}
+                  disabled={isSubmitting}
                   className="group mx-auto w-3/4 flex items-center justify-center gap-2 py-3 rounded-full text-white font-bold bg-gradient-to-r from-blue-500 via-indigo-500 to-cyan-500 hover:from-indigo-600 hover:to-blue-600 shadow-lg shadow-blue-400/30 transition duration-300 hover:scale-[1.03] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
                 >
-                  {loading ? "SIGNING IN..." : "SIGN IN"}
+                  {isSubmitting ? "SIGNING IN..." : "SIGN IN"}
 
                   <ArrowRight
                     size={18}

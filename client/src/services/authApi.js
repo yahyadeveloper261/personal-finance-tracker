@@ -1,5 +1,5 @@
 import { BASE_URL } from "./api";
-
+import { apiFetch } from "./apiClient";
 export const register = async (formData) => {
   const res = await fetch(`${BASE_URL}/register`, {
     method: "POST",
@@ -58,4 +58,20 @@ export const refreshAccessToken = async () => {
   }
 
   return data;
+};
+
+export const logoutUser = async () => {
+  try {
+    await apiFetch(`${BASE_URL}/logout`, {
+      method: "POST",
+    });
+  } finally {
+    localStorage.removeItem("token");
+  }
+};
+
+export const getMe = async () => {
+  return await apiFetch(`${BASE_URL}/me`, {
+    method: "GET",
+  });
 };

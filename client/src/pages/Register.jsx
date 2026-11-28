@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useForm } from "react-hook-form";
 
 import {
   Wallet,
@@ -12,60 +13,94 @@ import {
 } from "lucide-react";
 
 import { useNavigate } from "react-router-dom";
-
-import { register } from "../services/authApi";
+import { register as registerUser } from "../services/authApi";
 
 export default function Register() {
-  // Form states
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-
-  // UI states
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
+
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+
   const navigate = useNavigate();
-  const handleRegister = async (e) => {
-    e.preventDefault();
 
-    if (loading) return;
+  const {
+    register,
+    handleSubmit,
+    watch,
+    setError: setFieldError,
+    reset,
+    getValues,
+    formState: { errors, isSubmitting },
+  } = useForm({
+    defaultValues: {
+      name: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+    },
+  });
 
+  const password = watch("password") || "";
+  const confirmPassword = watch("confirmPassword") || "";
+
+  // Password strength
+  const isStrongPassword =
+    password.length >= 8 &&
+    password.length <= 20 &&
+    /[A-Z]/.test(password) &&
+    /[0-9]/.test(password);
+
+  // Register user
+  const handleRegister = async (formData) => {
     setError("");
     setSuccess("");
 
-    if (password !== confirmPassword) {
-      return setError("Passwords do not match");
-    }
-
     try {
-      setLoading(true);
-
-      const data = await register({
-        name: name.trim(),
-        email: email.trim().toLowerCase(),
-        password,
+      const data = await registerUser({
+        name: formData.name.trim(),
+        email: formData.email.trim().toLowerCase(),
+        password: formData.password,
       });
 
       setSuccess(data.message || "Account created successfully!");
 
-      setName("");
-      setEmail("");
-      setPassword("");
-      setConfirmPassword("");
+      reset();
 
       setTimeout(() => {
-        navigate("/");
-      }, 1500);
+        navigate("/login");
+      }, 1000);
     } catch (error) {
-      setError(error.message || "Registration failed. Please try again.");
-    } finally {
-      setLoading(false);
+      if (error.errors?.length) {
+        let hasFieldError = false;
+
+        error.errors.forEach((item) => {
+          if (["name", "email", "password"].includes(item.field)) {
+            setFieldError(item.field, {
+              type: "server",
+              message: item.message,
+            });
+
+            hasFieldError = true;
+          }
+        });
+
+        if (!hasFieldError) {
+          setError(error.message || "Registration failed");
+        }
+      } else {
+        setError(error.message || "Registration failed. Please try again.");
+      }
     }
   };
+
+  const inputStyle =
+    "w-full pl-5 pr-12 py-3.5 bg-white/65 border border-white/80 rounded-full outline-none text-slate-800 placeholder:text-slate-600 focus:bg-white/90 focus:border-blue-400 focus:ring-4 focus:ring-blue-300/30 transition";
+
+  const errorStyle = "text-red-600 text-xs px-4 mt-1.5";
+
+  const invalidStyle =
+    "border-red-500 focus:border-red-500 focus:ring-red-200/50";
 
   return (
     <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-sky-400 via-cyan-300 to-emerald-200 flex items-center justify-center p-4">
@@ -134,7 +169,11 @@ export default function Register() {
                 </p>
               </div>
 
-              <form onSubmit={handleRegister} noValidate className="space-y-4">
+              <form
+                onSubmit={handleSubmit(handleRegister)}
+                noValidate
+                className="space-y-4"
+              >
                 {/* Success Message */}
 
                 {success && (
@@ -143,7 +182,7 @@ export default function Register() {
                   </div>
                 )}
 
-                {/* Error Message */}
+                {/* General Error */}
 
                 {error && (
                   <div className="flex items-center gap-2 bg-red-100 border border-red-300 text-red-600 rounded-xl p-3 text-sm">
@@ -158,19 +197,36 @@ export default function Register() {
                   <input
                     type="text"
                     placeholder="Full Name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    minLength={3}
-                    maxLength={40}
                     autoComplete="name"
-                    required
-                    className="w-full pl-5 pr-12 py-3.5 bg-white/65 border border-white/80 rounded-full outline-none text-slate-800 placeholder:text-slate-600 focus:bg-white/90 focus:border-blue-400 focus:ring-4 focus:ring-blue-300/30 transition"
+                    maxLength={40}
+                    {...register("name", {
+                      required: "Name is required",
+                      setValueAs: (value) => value.trim(),
+                      minLength: {
+                        value: 3,
+                        message: "Name must be at least 3 characters",
+                      },
+                      maxLength: {
+                        value: 40,
+                        message: "Name cannot exceed 40 characters",
+                      },
+                      validate: (value) =>
+                        value.trim().length >= 3 ||
+                        "Name must be at least 3 characters",
+                    })}
+                    className={`${inputStyle} ${
+                      errors.name ? invalidStyle : ""
+                    }`}
                   />
 
                   <User
                     size={19}
                     className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-700"
                   />
+
+                  {errors.name && (
+                    <p className={errorStyle}>{errors.name.message}</p>
+                  )}
                 </div>
 
                 {/* Email */}
@@ -179,17 +235,28 @@ export default function Register() {
                   <input
                     type="email"
                     placeholder="Email Address"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
                     autoComplete="email"
-                    className="w-full pl-5 pr-12 py-3.5 bg-white/65 border border-white/80 rounded-full outline-none text-slate-800 placeholder:text-slate-600 focus:bg-white/90 focus:border-blue-400 focus:ring-4 focus:ring-blue-300/30 transition"
+                    {...register("email", {
+                      required: "Email is required",
+                      setValueAs: (value) => value.trim().toLowerCase(),
+                      pattern: {
+                        value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                        message: "Please enter a valid email address",
+                      },
+                    })}
+                    className={`${inputStyle} ${
+                      errors.email ? invalidStyle : ""
+                    }`}
                   />
 
                   <Mail
                     size={19}
                     className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-700"
                   />
+
+                  {errors.email && (
+                    <p className={errorStyle}>{errors.email.message}</p>
+                  )}
                 </div>
 
                 {/* Password */}
@@ -198,13 +265,29 @@ export default function Register() {
                   <input
                     type={showPassword ? "text" : "password"}
                     placeholder="Create Password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    minLength={8}
-                    maxLength={20}
                     autoComplete="new-password"
-                    className="w-full pl-5 pr-12 py-3.5 bg-white/65 border border-white/80 rounded-full outline-none text-slate-800 placeholder:text-slate-600 focus:bg-white/90 focus:border-blue-400 focus:ring-4 focus:ring-blue-300/30 transition"
+                    {...register("password", {
+                      required: "Password is required",
+                      minLength: {
+                        value: 8,
+                        message: "Password must be at least 8 characters",
+                      },
+                      maxLength: {
+                        value: 20,
+                        message: "Password cannot exceed 20 characters",
+                      },
+                      validate: {
+                        uppercase: (value) =>
+                          /[A-Z]/.test(value) ||
+                          "Password must contain an uppercase letter",
+                        number: (value) =>
+                          /[0-9]/.test(value) ||
+                          "Password must contain a number",
+                      },
+                    })}
+                    className={`${inputStyle} ${
+                      errors.password ? invalidStyle : ""
+                    }`}
                   />
 
                   <button
@@ -215,6 +298,10 @@ export default function Register() {
                   >
                     {showPassword ? <EyeOff size={19} /> : <Eye size={19} />}
                   </button>
+
+                  {errors.password && (
+                    <p className={errorStyle}>{errors.password.message}</p>
+                  )}
                 </div>
 
                 {/* Password Strength */}
@@ -222,18 +309,10 @@ export default function Register() {
                 {password && (
                   <p
                     className={`text-xs px-3 ${
-                      password.length >= 8 &&
-                      password.length <= 20 &&
-                      /[A-Z]/.test(password) &&
-                      /[0-9]/.test(password)
-                        ? "text-green-600"
-                        : "text-red-500"
+                      isStrongPassword ? "text-green-600" : "text-red-500"
                     }`}
                   >
-                    {password.length >= 8 &&
-                    password.length <= 20 &&
-                    /[A-Z]/.test(password) &&
-                    /[0-9]/.test(password)
+                    {isStrongPassword
                       ? "Strong password"
                       : "Use 8-20 characters, one uppercase letter and one number"}
                   </p>
@@ -245,13 +324,16 @@ export default function Register() {
                   <input
                     type={showConfirmPassword ? "text" : "password"}
                     placeholder="Confirm Password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    required
-                    minLength={8}
-                    maxLength={20}
                     autoComplete="new-password"
-                    className="w-full pl-5 pr-12 py-3.5 bg-white/65 border border-white/80 rounded-full outline-none text-slate-800 placeholder:text-slate-600 focus:bg-white/90 focus:border-blue-400 focus:ring-4 focus:ring-blue-300/30 transition"
+                    {...register("confirmPassword", {
+                      required: "Please confirm your password",
+                      validate: (value) =>
+                        value === getValues("password") ||
+                        "Passwords do not match",
+                    })}
+                    className={`${inputStyle} ${
+                      errors.confirmPassword ? invalidStyle : ""
+                    }`}
                   />
 
                   <button
@@ -266,32 +348,28 @@ export default function Register() {
                       <Eye size={19} />
                     )}
                   </button>
+
+                  {errors.confirmPassword && (
+                    <p className={errorStyle}>
+                      {errors.confirmPassword.message}
+                    </p>
+                  )}
                 </div>
 
                 {/* Confirm Password Message */}
 
-                {confirmPassword && (
-                  <p
-                    className={`text-xs px-3 ${
-                      password === confirmPassword
-                        ? "text-green-600"
-                        : "text-red-500"
-                    }`}
-                  >
-                    {password === confirmPassword
-                      ? "Passwords match"
-                      : "Passwords do not match"}
-                  </p>
+                {confirmPassword && !errors.confirmPassword && (
+                  <p className="text-xs px-3 text-green-600">Passwords match</p>
                 )}
 
                 {/* Register Button */}
 
                 <button
                   type="submit"
-                  disabled={loading}
+                  disabled={isSubmitting}
                   className="group w-3/4 mx-auto flex items-center justify-center gap-2 py-3.5 rounded-full text-white font-bold bg-gradient-to-r from-blue-500 via-indigo-500 to-cyan-500 hover:from-indigo-600 hover:to-blue-600 shadow-lg shadow-blue-400/30 transition duration-300 hover:scale-[1.03] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
                 >
-                  {loading ? (
+                  {isSubmitting ? (
                     <>
                       <Loader2 size={18} className="animate-spin" />
                       Creating Account...
@@ -314,7 +392,7 @@ export default function Register() {
                 Already have an account?{" "}
                 <button
                   type="button"
-                  onClick={() => navigate("/")}
+                  onClick={() => navigate("/login")}
                   className="font-bold text-slate-900 hover:text-blue-700"
                 >
                   Login

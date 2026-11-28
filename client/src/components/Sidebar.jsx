@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from "react-router-dom";
-
+import { logoutUser } from "../services/authApi";
 import {
   LayoutDashboard,
   TrendingUp,
@@ -52,9 +52,15 @@ const menuItems = [
 export default function Sidebar({ open, setOpen }) {
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    navigate("/");
+  const handleLogout = async () => {
+    try {
+      await logoutUser();
+    } catch (error) {
+      console.error("Logout Error:", error.message);
+    } finally {
+      localStorage.removeItem("token");
+      navigate("/login", { replace: true });
+    }
   };
 
   return (

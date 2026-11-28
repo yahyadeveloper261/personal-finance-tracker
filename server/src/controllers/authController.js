@@ -204,3 +204,63 @@ export const refreshUserAccessToken = async (req, res) => {
     });
   }
 };
+
+// ================= LOGOUT =================
+
+export const logout = async (req, res) => {
+  try {
+    // Remove refresh token hash from database
+    await User.findByIdAndUpdate(req.user.id, {
+      $unset: { refreshTokenHash: 1 },
+    });
+
+    // Clear refresh token cookie
+    res.clearCookie("refreshToken", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      path: "/",
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Logged out successfully",
+    });
+  } catch (error) {
+    console.error("Logout Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Logout failed. Please try again.",
+    });
+  }
+};
+
+// ================= GET LOGGED-IN USER =================
+
+export const getMe = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select(
+      "-password -refreshTokenHash",
+    );
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      user,
+    });
+  } catch (error) {
+    console.error("Get Me Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Unable to fetch user profile",
+    });
+  }
+};

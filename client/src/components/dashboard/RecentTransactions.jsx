@@ -13,6 +13,7 @@ import {
   ArrowUpDown,
   ReceiptText,
   CalendarDays,
+  Download,
 } from "lucide-react";
 
 export default function RecentTransactions({
@@ -23,6 +24,7 @@ export default function RecentTransactions({
   setPage,
   totalPages,
   handleDelete,
+handleExportCSV,
   type,
   setType,
   category,
@@ -55,22 +57,37 @@ export default function RecentTransactions({
           </div>
 
           {/* Search */}
-          <div className="relative w-full lg:w-80">
-            <Search
-              size={18}
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-600"
-            />
+  
+  {/* Search and CSV Export */}
+  <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+    {/* Search */}
+    <div className="relative w-full lg:w-80">
+      <Search
+        size={18}
+        className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-600"
+      />
 
-            <input
-              type="text"
-              placeholder="Search transactions..."
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-              }}
-              className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none transition-all focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-50 placeholder:text-slate-400"
-            />
-          </div>
+      <input
+        type="text"
+        placeholder="Search transactions..."
+        value={search}
+        onChange={(e) => {
+          setSearch(e.target.value);
+        }}
+        className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none transition-all focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-50 placeholder:text-slate-400"
+      />
+    </div>
+
+    {/* Export CSV Button */}
+    <button
+      onClick={handleExportCSV}
+      className="flex items-center justify-center gap-2 px-5 py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-700 text-white text-sm font-semibold shadow-md shadow-emerald-100 hover:from-emerald-600 hover:to-teal-800 transition-all whitespace-nowrap"
+    >
+      <Download size={18} />
+      Export CSV
+    </button>
+  </div>
+
         </div>
 
         {/* Filter Heading */}

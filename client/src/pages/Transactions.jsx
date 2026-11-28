@@ -1,7 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { createTransaction } from "../services/transactionApi";
-import { getTransactions, updateTransaction } from "../services/transactionApi";
-import { useNavigate } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import {
+  createTransaction,
+  getTransactions,
+  updateTransaction,
+} from "../services/transactionApi";
+import { useNavigate, useParams } from "react-router-dom";
+
 import {
   Wallet,
   ArrowDownLeft,
@@ -13,45 +18,82 @@ import {
   Loader2,
   Plus,
 } from "lucide-react";
-import { useParams } from "react-router-dom";
 
 export default function Transactions() {
-  const [title, setTitle] = useState("");
-  const [type, setType] = useState("income");
-  const [amount, setAmount] = useState("");
-  const [category, setCategory] = useState("Salary");
-  const [description, setDescription] = useState("");
-  const [date, setDate] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
   const navigate = useNavigate();
   const { id } = useParams();
+
+  const [error, setError] = useState("");
+
+  const {
+    register,
+    handleSubmit,
+    watch,
+    setValue,
+    setError: setFieldError,
+    clearErrors,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm({
+    defaultValues: {
+      title: "",
+      type: "income",
+      amount: "",
+      category: "Salary",
+      description: "",
+      date: "",
+    },
+  });
+
+  // Watch form values for live preview
+  const title = watch("title") || "";
+  const type = watch("type") || "income";
+  const amount = watch("amount") || "";
+  const category = watch("category") || "";
+  const description = watch("description") || "";
+  const date = watch("date") || "";
+
+  // Fetch transaction for editing
   useEffect(() => {
     if (!id) return;
-    const updation = async () => {
-      const match = await getTransactions({
-        page: 1,
-        limit: 1000,
-        search: "",
-        type: "",
-        category: "",
-        startDate: "",
-        endDate: "",
-      });
 
-      const transaction = match.transactions.find((trans) => trans._id === id);
-      if (transaction) {
-        setTitle(transaction.title);
-        setType(transaction.type);
-        setAmount(transaction.amount);
-        setCategory(transaction.category);
-        setDescription(transaction.description);
-        setDate(new Date(transaction.date).toISOString().split("T")[0]);
+    const updation = async () => {
+      try {
+        const match = await getTransactions({
+          page: 1,
+          limit: 1000,
+          search: "",
+          type: "",
+          category: "",
+          startDate: "",
+          endDate: "",
+        });
+
+        const transaction = match.transactions.find(
+          (trans) => trans._id === id,
+        );
+
+        if (transaction) {
+          reset({
+            title: transaction.title || "",
+            type: transaction.type || "income",
+            amount: transaction.amount,
+            category: transaction.category || "",
+            description: transaction.description || "",
+            date: transaction.date
+              ? new Date(transaction.date).toISOString().split("T")[0]
+              : "",
+          });
+        }
+      } catch (error) {
+        setError(error.message || "Failed to fetch transaction");
       }
     };
-    updation();
-  }, [id]);
 
+    updation();
+  }, [id, reset]);
+
+  // Categories
   const categories =
     type === "income"
       ? [
@@ -75,63 +117,94 @@ export default function Transactions() {
           "Other Expense",
         ];
 
-  const handleTypeChange = (e) => {
-    const newType = e.target.value;
-    setType(newType);
-    setCategory(newType === "income" ? "Salary" : "Food & Dining");
+  const handleTypeChange = (newType) => {
+    const defaultCategory = newType === "income" ? "Salary" : "Food & Dining";
+
+    setValue("type", newType, {
+      shouldValidate: false,
+      shouldDirty: true,
+    });
+
+    setValue("category", defaultCategory, {
+      shouldValidate: false,
+      shouldDirty: true,
+    });
+
+    clearErrors(["type", "category"]);
   };
 
-  const handleTransaction = async (e) => {
-    e.preventDefault();
-    setLoading(true);
+  // Submit transaction
+  const handleTransaction = async (formData) => {
     setError("");
 
+    const payload = {
+      title: formData.title.trim(),
+      type: formData.type,
+      amount: Number(formData.amount),
+      category: formData.category.trim(),
+      description: formData.description || "",
+      date: formData.date,
+    };
+
     try {
-      const formData = {
-        title,
-        type,
-        amount: Number(amount),
-        category,
-        description,
-        date,
-      };
-      id
-        ? await updateTransaction(id, formData)
-        : await createTransaction(formData);
+      if (id) {
+        await updateTransaction(id, payload);
+        alert("Transaction successfully updated");
+      } else {
+        await createTransaction(payload);
+        alert("Transaction successfully added");
+      }
 
-      id
-        ? alert("Transaction successfully updated")
-        : alert("Transaction successfullya added");
-
-      setTitle("");
-      setAmount("");
-      setDescription("");
-      setDate("");
-      setType("income");
-      setCategory("Salary");
-
+      reset();
       navigate("/dashboard");
     } catch (error) {
-      setError(error.message);
-    } finally {
-      setLoading(false);
+      if (error.errors?.length) {
+        let hasFieldError = false;
+
+        error.errors.forEach((item) => {
+          const allowedFields = [
+            "title",
+            "type",
+            "amount",
+            "category",
+            "description",
+            "date",
+          ];
+
+          if (allowedFields.includes(item.field)) {
+            setFieldError(item.field, {
+              type: "server",
+              message: item.message,
+            });
+
+            hasFieldError = true;
+          }
+        });
+
+        if (!hasFieldError) {
+          setError(error.message || "Validation failed");
+        }
+      } else {
+        setError(error.message || "Failed to save transaction");
+      }
     }
   };
 
   const inputStyle =
     "w-full mt-2 px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl outline-none transition focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 text-slate-700 placeholder:text-slate-400";
 
+  const errorStyle = "text-red-500 text-xs mt-1.5";
+
+  const invalidStyle = "border-red-500 focus:border-red-500 focus:ring-red-100";
+
   return (
     <div className="min-h-screen bg-[#f5f7fc] p-4 sm:p-8">
       <div className="max-w-5xl mx-auto">
         {/* Header */}
         <button
+          type="button"
           onClick={() => navigate(-1)}
-          className="group inline-flex items-center gap-2.5 px-4 py-2.5 mb-5
-  bg-white border border-slate-200 rounded-xl
-  text-slate-600 text-sm font-semibold
-  shadow-sm hover:shadow-md hover:border-emerald-300
-  hover:text-emerald-700 transition-all duration-300"
+          className="group inline-flex items-center gap-2.5 px-4 py-2.5 mb-5 bg-white border border-slate-200 rounded-xl text-slate-600 text-sm font-semibold shadow-sm hover:shadow-md hover:border-emerald-300 hover:text-emerald-700 transition-all duration-300"
         >
           <ArrowLeft
             size={17}
@@ -147,6 +220,7 @@ export default function Transactions() {
               <h2 className="text-xl font-bold text-slate-800">
                 Transaction Details
               </h2>
+
               <p className="text-sm text-slate-400 mt-1">
                 Enter the details of your transaction.
               </p>
@@ -158,7 +232,11 @@ export default function Transactions() {
               </div>
             )}
 
-            <form onSubmit={handleTransaction} className="space-y-5">
+            <form
+              onSubmit={handleSubmit(handleTransaction)}
+              className="space-y-5"
+              noValidate
+            >
               {/* Title */}
               <div>
                 <label className="text-sm font-semibold text-slate-700">
@@ -168,11 +246,25 @@ export default function Transactions() {
                 <input
                   type="text"
                   placeholder="e.g. Monthly Salary"
-                  value={title}
-                  required
-                  onChange={(e) => setTitle(e.target.value)}
-                  className={inputStyle}
+                  maxLength={100}
+                  {...register("title", {
+                    required: "Title is required",
+                    setValueAs: (value) => value.trim(),
+                    maxLength: {
+                      value: 100,
+                      message: "Title cannot exceed 100 characters",
+                    },
+                    validate: (value) =>
+                      value.trim().length > 0 || "Title is required",
+                  })}
+                  className={`${inputStyle} ${
+                    errors.title ? invalidStyle : ""
+                  }`}
                 />
+
+                {errors.title && (
+                  <p className={errorStyle}>{errors.title.message}</p>
+                )}
               </div>
 
               {/* Type */}
@@ -184,9 +276,7 @@ export default function Transactions() {
                 <div className="grid grid-cols-2 gap-3 mt-2">
                   <button
                     type="button"
-                    onClick={() =>
-                      handleTypeChange({ target: { value: "income" } })
-                    }
+                    onClick={() => handleTypeChange("income")}
                     className={`flex items-center justify-center gap-2 p-4 rounded-xl border-2 font-semibold transition ${
                       type === "income"
                         ? "border-emerald-500 bg-emerald-50 text-emerald-700"
@@ -199,9 +289,7 @@ export default function Transactions() {
 
                   <button
                     type="button"
-                    onClick={() =>
-                      handleTypeChange({ target: { value: "expense" } })
-                    }
+                    onClick={() => handleTypeChange("expense")}
                     className={`flex items-center justify-center gap-2 p-4 rounded-xl border-2 font-semibold transition ${
                       type === "expense"
                         ? "border-rose-500 bg-rose-50 text-rose-700"
@@ -212,6 +300,20 @@ export default function Transactions() {
                     Expense
                   </button>
                 </div>
+
+                <input
+                  type="hidden"
+                  {...register("type", {
+                    required: "Transaction type is required",
+                    validate: (value) =>
+                      ["income", "expense"].includes(value) ||
+                      "Please select a valid transaction type",
+                  })}
+                />
+
+                {errors.type && (
+                  <p className={errorStyle}>{errors.type.message}</p>
+                )}
               </div>
 
               {/* Amount */}
@@ -230,12 +332,25 @@ export default function Transactions() {
                     min="0.01"
                     step="0.01"
                     placeholder="0.00"
-                    value={amount}
-                    required
-                    onChange={(e) => setAmount(e.target.value)}
-                    className={`${inputStyle} pl-14 text-lg font-bold`}
+                    {...register("amount", {
+                      required: "Amount is required",
+                      setValueAs: (value) =>
+                        value === "" ? "" : Number(value),
+                      validate: {
+                        positive: (value) =>
+                          (Number.isFinite(value) && value > 0) ||
+                          "Amount must be greater than 0",
+                      },
+                    })}
+                    className={`${inputStyle} pl-14 text-lg font-bold ${
+                      errors.amount ? invalidStyle : ""
+                    }`}
                   />
                 </div>
+
+                {errors.amount && (
+                  <p className={errorStyle}>{errors.amount.message}</p>
+                )}
               </div>
 
               {/* Category */}
@@ -246,9 +361,20 @@ export default function Transactions() {
                 </label>
 
                 <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  className={inputStyle}
+                  {...register("category", {
+                    required: "Category is required",
+                    validate: (value) =>
+                      typeof value === "string" && value.trim().length > 0
+                        ? true
+                        : "Category is required",
+                    maxLength: {
+                      value: 50,
+                      message: "Category cannot exceed 50 characters",
+                    },
+                  })}
+                  className={`${inputStyle} ${
+                    errors.category ? invalidStyle : ""
+                  }`}
                 >
                   {categories.map((item) => (
                     <option key={item} value={item}>
@@ -256,6 +382,10 @@ export default function Transactions() {
                     </option>
                   ))}
                 </select>
+
+                {errors.category && (
+                  <p className={errorStyle}>{errors.category.message}</p>
+                )}
               </div>
 
               {/* Date */}
@@ -267,11 +397,18 @@ export default function Transactions() {
 
                 <input
                   type="date"
-                  value={date}
-                  required
-                  onChange={(e) => setDate(e.target.value)}
-                  className={inputStyle}
+                  {...register("date", {
+                    required: "Please select a transaction date",
+                    validate: (value) =>
+                      !Number.isNaN(Date.parse(value)) ||
+                      "Please select a valid date",
+                  })}
+                  className={`${inputStyle} ${errors.date ? invalidStyle : ""}`}
                 />
+
+                {errors.date && (
+                  <p className={errorStyle}>{errors.date.message}</p>
+                )}
               </div>
 
               {/* Description */}
@@ -283,23 +420,42 @@ export default function Transactions() {
 
                 <textarea
                   rows="3"
+                  maxLength={500}
                   placeholder="Add some details..."
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  className={`${inputStyle} resize-none`}
+                  {...register("description", {
+                    maxLength: {
+                      value: 500,
+                      message: "Description cannot exceed 500 characters",
+                    },
+                  })}
+                  className={`${inputStyle} resize-none ${
+                    errors.description ? invalidStyle : ""
+                  }`}
                 />
+
+                <div className="flex justify-between items-center mt-1.5">
+                  {errors.description ? (
+                    <p className={errorStyle}>{errors.description.message}</p>
+                  ) : (
+                    <span />
+                  )}
+
+                  <span className="text-xs text-slate-400">
+                    {description.length}/500
+                  </span>
+                </div>
               </div>
 
               {/* Submit */}
               <button
                 type="submit"
-                disabled={loading}
+                disabled={isSubmitting}
                 className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:opacity-60 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-500/20 transition"
               >
-                {loading ? (
+                {isSubmitting ? (
                   <>
                     <Loader2 className="animate-spin" size={20} />
-                    Adding Transaction...
+                    Saving Transaction...
                   </>
                 ) : (
                   <>

@@ -8,7 +8,7 @@ export const apiFetch = async (url, options = {}) => {
       ...options,
       headers: {
         ...options.headers,
-        Authorization: `Bearer ${token}`,
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       credentials: "include",
     });
@@ -22,10 +22,11 @@ export const apiFetch = async (url, options = {}) => {
 
   let res = await sendRequest(token);
 
-  // Access token expire hone par
-  if (res.status === 401) {
+  // Logout par automatic refresh attempt nahi karna
+  const isLogoutRequest = url.includes("/logout");
+
+  if (res.status === 401 && !isLogoutRequest) {
     try {
-      // Ek hi refresh request chalegi
       if (!refreshPromise) {
         refreshPromise = refreshAccessToken()
           .then((data) => {
@@ -38,8 +39,6 @@ export const apiFetch = async (url, options = {}) => {
       }
 
       token = await refreshPromise;
-
-      // Original request dobara send
       res = await sendRequest(token);
     } catch (error) {
       localStorage.removeItem("token");
@@ -50,7 +49,9 @@ export const apiFetch = async (url, options = {}) => {
   const data = await res.json();
 
   if (!res.ok) {
-    throw new Error(data.message || "Request failed");
+    const error = new Error(data.message || "Request failed");
+    error.errors = data.errors || [];
+    throw error;
   }
 
   return data;

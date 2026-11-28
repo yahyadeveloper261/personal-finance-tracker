@@ -61,3 +61,13 @@ export const deleteTransaction = async (id) => {
     method: "DELETE",
   });
 };
+
+// Get Monthly Transaction Stats
+export const getMonthlyTransactionStats = async (range = "6M") => {
+  return await apiFetch(
+    `${BASE_URL}/my/transactions/monthly-stats?range=${range}`,
+    {
+      method: "GET",
+    },
+  );
+};

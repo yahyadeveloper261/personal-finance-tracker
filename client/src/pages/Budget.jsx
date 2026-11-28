@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from "react";
+import { useForm } from "react-hook-form";
+
 import {
   createBudget,
   getBudget,
@@ -18,19 +20,19 @@ import {
   Pencil,
   Trash2,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { useParams } from "react-router-dom";
+
+import { useNavigate, useParams } from "react-router-dom";
+
 export default function Budget() {
-  const [category, setCategory] = useState("Food");
-  const [amount, setAmount] = useState("");
-  const [loading, setLoading] = useState(false);
   const [budget, setBudget] = useState([]);
   const [totalBud, setTotalBud] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [page, setPage] = useState(1);
+
   const navigate = useNavigate();
   const { id } = useParams();
   const formRef = useRef(null);
+
   const categories = [
     { name: "Food", icon: Utensils },
     { name: "Shopping", icon: ShoppingBag },
@@ -40,18 +42,55 @@ export default function Budget() {
     { name: "Others", icon: LayoutGrid },
   ];
 
-  // For Budget Updation
+  // React Hook Form
+  const {
+    register,
+    handleSubmit,
+    watch,
+    setValue,
+    setError: setFieldError,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm({
+    defaultValues: {
+      category: "Food",
+      amount: "",
+    },
+  });
+
+  const selectedCategory = watch("category");
+
+  // Category registration
+  const categoryField = register("category", {
+    required: "Please select a category",
+  });
+
+  // Amount registration
+  const amountField = register("amount", {
+    setValueAs: (value) => (value === "" ? "" : Number(value)),
+
+    required: "Budget amount is required",
+
+    validate: {
+      validNumber: (value) =>
+        (value !== "" && Number.isFinite(value)) ||
+        "Please enter a valid amount",
+
+      positive: (value) => Number(value) > 0 || "Amount must be greater than 0",
+    },
+  });
+
+  // Fetch Budget Details For Editing
   useEffect(() => {
     if (!id) return;
 
     const updation = async () => {
       try {
-        // Pehle current page par budget search karo
         const res = await getBudget(page, 5);
 
         let match = res.budget.find((item) => item._id === id);
 
-        // Agar current page par nahi mila to baqi pages check karo
+        // Search other pages if budget is not found
         if (!match) {
           for (let p = 1; p <= res.totalPages; p++) {
             if (p === page) continue;
@@ -65,8 +104,10 @@ export default function Budget() {
         }
 
         if (match) {
-          setCategory(match.category);
-          setAmount(match.amount);
+          reset({
+            category: match.category,
+            amount: String(match.amount),
+          });
         }
       } catch (error) {
         alert(error.message || "Failed to fetch budget details");
@@ -76,12 +117,14 @@ export default function Budget() {
     updation();
   }, [id]);
 
+  // Fetch Budgets
   useEffect(() => {
     const fetchBudgets = async () => {
       try {
         const res = await getBudget(page, 5);
-        setTotalBud(res?.totalBudget);
-        setTotalPages(res?.totalPages);
+
+        setTotalBud(res?.totalBudget || 0);
+        setTotalPages(res?.totalPages || 1);
         setBudget(res?.budget || []);
       } catch (error) {
         alert(error.message || "Failed to fetch budgets");
@@ -90,49 +133,77 @@ export default function Budget() {
 
     fetchBudgets();
   }, [page]);
-  // Budget Creation
-  const handleSubmit = async (e) => {
-    e.preventDefault();
 
+  // Create / Update Budget
+  const handleBudgetSubmit = async (formValues) => {
     try {
-      setLoading(true);
-
       const now = new Date();
 
       const formData = {
-        category,
-        amount: Number(amount),
+        category: formValues.category,
+        amount: Number(formValues.amount),
         month: now.getMonth() + 1,
         year: now.getFullYear(),
       };
 
-      let res;
-
       if (id) {
-        res = await updateBudget(id, formData);
+        await updateBudget(id, formData);
+
         alert("Budget updated successfully!");
+
         navigate("/budget");
       } else {
-        res = await createBudget(formData);
+        const res = await createBudget(formData);
+
         alert(res.message || "Budget created successfully!");
+
+        reset({
+          category: formValues.category,
+          amount: "",
+        });
       }
 
-      setAmount("");
-
+      // Refresh Budget List
       const updated = await getBudget(page, 5);
 
       setBudget(updated?.budget || []);
       setTotalBud(updated?.totalBudget || 0);
       setTotalPages(updated?.totalPages || 1);
     } catch (error) {
-      alert(error.message || "Failed to save budget");
-    } finally {
-      setLoading(false);
+      const backendErrors = error.errors;
+
+      if (Array.isArray(backendErrors) && backendErrors.length > 0) {
+        let hasUnmappedError = false;
+
+        backendErrors.forEach((item) => {
+          if (item.field === "category" || item.field === "amount") {
+            setFieldError(item.field, {
+              type: "server",
+              message: item.message,
+            });
+          } else {
+            hasUnmappedError = true;
+          }
+        });
+
+        if (hasUnmappedError) {
+          alert(
+            backendErrors
+              .filter(
+                (item) => item.field !== "category" && item.field !== "amount",
+              )
+              .map((item) => item.message)
+              .join("\n"),
+          );
+        }
+      } else {
+        alert(error.message || "Failed to save budget");
+      }
     }
   };
 
   // Delete Budget
-  const handleDelete = async (id) => {
+  const handleDelete = async (budgetId) => {
     const confirmDelete = window.confirm(
       "Are you sure you want to delete this budget? This action cannot be undone.",
     );
@@ -140,11 +211,23 @@ export default function Budget() {
     if (!confirmDelete) return;
 
     try {
-      await deleteBudget(id);
+      await deleteBudget(budgetId);
 
-      setBudget((prev) => prev.filter((item) => item._id !== id));
+      setBudget((prev) => prev.filter((item) => item._id !== budgetId));
 
       alert("Budget deleted successfully!");
+
+      // Refresh totals and pagination
+      const updated = await getBudget(page, 5);
+
+      setBudget(updated?.budget || []);
+      setTotalBud(updated?.totalBudget || 0);
+      setTotalPages(updated?.totalPages || 1);
+
+      // Move to previous page if current page becomes empty
+      if (updated?.budget?.length === 0 && page > 1) {
+        setPage((prev) => prev - 1);
+      }
     } catch (error) {
       alert(error.message || "Failed to delete the budget. Please try again.");
     }
@@ -153,6 +236,7 @@ export default function Budget() {
   return (
     <div className="w-full max-w-3xl mx-auto">
       {/* Header */}
+
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-2">
           <div className="p-3 bg-emerald-100 rounded-xl">
@@ -163,6 +247,7 @@ export default function Budget() {
             <h1 className="text-2xl font-bold text-slate-800">
               Set Monthly Budget
             </h1>
+
             <p className="text-sm text-slate-500">
               Manage your monthly spending limits
             </p>
@@ -171,6 +256,7 @@ export default function Budget() {
       </div>
 
       {/* Total Budget Summary */}
+
       <div className="mb-6 bg-gradient-to-r from-emerald-500 to-green-600 rounded-2xl p-6 text-white shadow-lg">
         <div className="flex items-center justify-between">
           <div>
@@ -179,7 +265,7 @@ export default function Budget() {
             </p>
 
             <h2 className="text-3xl font-bold mt-2">
-              Rs. {totalBud.toLocaleString()}
+              Rs. {Number(totalBud).toLocaleString()}
             </h2>
 
             <p className="text-emerald-100 text-xs mt-2">
@@ -194,27 +280,40 @@ export default function Budget() {
       </div>
 
       {/* Form Card */}
+
       <div
         ref={formRef}
         className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden"
       >
-        <form onSubmit={handleSubmit} className="p-5 sm:p-7 space-y-7">
+        <form
+          onSubmit={handleSubmit(handleBudgetSubmit)}
+          noValidate
+          className="p-5 sm:p-7 space-y-7"
+        >
           {/* Category */}
+
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-3">
               Select Category
             </label>
 
+            <input type="hidden" {...categoryField} />
+
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {categories.map((item) => {
                 const Icon = item.icon;
-                const active = category === item.name;
+                const active = selectedCategory === item.name;
 
                 return (
                   <button
                     key={item.name}
                     type="button"
-                    onClick={() => setCategory(item.name)}
+                    onClick={() =>
+                      setValue("category", item.name, {
+                        shouldValidate: true,
+                        shouldDirty: true,
+                      })
+                    }
                     className={`flex flex-col items-center justify-center gap-2 p-4 rounded-xl border transition-all ${
                       active
                         ? "border-emerald-500 bg-emerald-50 text-emerald-700 ring-2 ring-emerald-100"
@@ -222,14 +321,22 @@ export default function Budget() {
                     }`}
                   >
                     <Icon size={23} />
+
                     <span className="text-sm font-medium">{item.name}</span>
                   </button>
                 );
               })}
             </div>
+
+            {errors.category && (
+              <p className="text-red-500 text-xs mt-2">
+                {errors.category.message}
+              </p>
+            )}
           </div>
 
           {/* Amount */}
+
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-3">
               Budget Amount
@@ -243,12 +350,22 @@ export default function Budget() {
               <input
                 type="number"
                 min="1"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
+                step="any"
                 placeholder="Enter your budget amount"
-                className="w-full border border-slate-200 rounded-xl py-4 pl-14 pr-4 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition"
-                required
+                aria-invalid={!!errors.amount}
+                {...amountField}
+                className={`w-full border rounded-xl py-4 pl-14 pr-4 outline-none focus:ring-2 transition ${
+                  errors.amount
+                    ? "border-red-400 focus:border-red-500 focus:ring-red-100"
+                    : "border-slate-200 focus:border-emerald-500 focus:ring-emerald-100"
+                }`}
               />
+
+              {errors.amount && (
+                <p className="text-red-500 text-xs mt-2">
+                  {errors.amount.message}
+                </p>
+              )}
             </div>
 
             <p className="text-xs text-slate-400 mt-2">
@@ -257,20 +374,24 @@ export default function Budget() {
           </div>
 
           {/* Submit */}
+
           <button
             type="submit"
-            disabled={loading}
+            disabled={isSubmitting}
             className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white py-3.5 rounded-xl font-semibold transition"
           >
             <Save size={19} />
-            {loading ? "Saving..." : "Save Budget"}
+
+            {isSubmitting ? "Saving..." : id ? "Update Budget" : "Save Budget"}
           </button>
         </form>
       </div>
 
       {/* Saved Budgets */}
+
       <div className="mt-8 bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
         {/* Header */}
+
         <div className="p-5 sm:p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <h2 className="text-lg font-bold text-slate-800">
@@ -288,6 +409,7 @@ export default function Budget() {
         </div>
 
         {/* Table */}
+
         <div className="overflow-x-auto">
           <table className="w-full min-w-[650px] text-sm text-left">
             <thead className="bg-slate-50 text-slate-500">
@@ -324,6 +446,7 @@ export default function Budget() {
                     className="hover:bg-emerald-50/40 transition-colors"
                   >
                     {/* Category */}
+
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
@@ -344,6 +467,7 @@ export default function Budget() {
                     </td>
 
                     {/* Month */}
+
                     <td className="px-6 py-4 text-slate-600">
                       {new Date(item.year, item.month - 1).toLocaleString(
                         "en-US",
@@ -354,14 +478,17 @@ export default function Budget() {
                     </td>
 
                     {/* Year */}
+
                     <td className="px-6 py-4 text-slate-600">{item.year}</td>
 
                     {/* Amount */}
+
                     <td className="px-6 py-4 text-right font-bold text-emerald-600 whitespace-nowrap">
                       Rs. {Number(item.amount).toLocaleString()}
                     </td>
 
                     {/* Actions */}
+
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-center gap-2">
                         <button
@@ -402,9 +529,12 @@ export default function Budget() {
             </tbody>
           </table>
         </div>
+
         {/* Pagination */}
+
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-5 py-4 border-t border-slate-100">
           {/* Page Info */}
+
           <p className="text-sm text-slate-500">
             Showing page{" "}
             <span className="font-semibold text-slate-800">{page}</span> of{" "}
@@ -412,8 +542,10 @@ export default function Budget() {
           </p>
 
           {/* Buttons */}
+
           <div className="flex items-center gap-2">
             <button
+              type="button"
               onClick={() => setPage((prev) => prev - 1)}
               disabled={page === 1}
               className="flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:text-slate-600 disabled:hover:border-slate-200 transition-all"
@@ -426,6 +558,7 @@ export default function Budget() {
             </span>
 
             <button
+              type="button"
               onClick={() => setPage((prev) => prev + 1)}
               disabled={page >= totalPages}
               className="flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:text-slate-600 disabled:hover:border-slate-200 transition-all"

@@ -1,12 +1,27 @@
+import mongoose from "mongoose";
 import Transaction from "../models/Transaction.js";
 import Budget from "../models/Budget.js";
 import createNotification from "../utils/createNotification.js";
-import mongoose from "mongoose";
+import { transactionSchema } from "../validators/financeSchema.js";
 //===============================CreateTransaction====================================
 
 export const createTransaction = async (req, res) => {
   try {
-    const { title, amount, type, category, description, date } = req.body;
+    const validation = transactionSchema.safeParse(req.body);
+
+    if (!validation.success) {
+      return res.status(400).json({
+        success: false,
+        message: "Validation failed",
+        errors: validation.error.issues.map((issue) => ({
+          field: issue.path.join("."),
+          message: issue.message,
+        })),
+      });
+    }
+
+    const { title, amount, type, category, description, date } =
+      validation.data;
 
     // 1. Create Transaction
     const transaction = await Transaction.create({
@@ -195,11 +210,199 @@ export const getExpensiveCategories = async (req, res) => {
     });
   }
 };
+
+//======================getMonthlyTransactionStats======================
+
+export const getMonthlyTransactionStats = async (req, res) => {
+  try {
+    const now = new Date();
+    const range = req.query.range || "6M";
+    const timezone = "Asia/Karachi";
+
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
+
+    let startDate = null;
+
+    if (range === "6M") {
+      startDate = new Date(
+        Date.UTC(currentYear, currentMonth - 6, 1) - 5 * 60 * 60 * 1000,
+      );
+    } else if (range === "1Y") {
+      startDate = new Date(
+        Date.UTC(currentYear, currentMonth - 12, 1) - 5 * 60 * 60 * 1000,
+      );
+    } else if (range !== "All") {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid range",
+      });
+    }
+
+    const endDate = new Date(
+      Date.UTC(currentYear, currentMonth, 1) - 5 * 60 * 60 * 1000,
+    );
+
+    const match = {
+      user: new mongoose.Types.ObjectId(req.user.id),
+      date: { $lt: endDate },
+    };
+
+    if (startDate) {
+      match.date.$gte = startDate;
+    }
+
+    const monthlyTotals = await Transaction.aggregate([
+      {
+        $match: match,
+      },
+      {
+        $group: {
+          _id: {
+            year: {
+              $year: {
+                date: "$date",
+                timezone,
+              },
+            },
+            month: {
+              $month: {
+                date: "$date",
+                timezone,
+              },
+            },
+            type: "$type",
+          },
+          total: {
+            $sum: "$amount",
+          },
+        },
+      },
+      {
+        $sort: {
+          "_id.year": 1,
+          "_id.month": 1,
+        },
+      },
+    ]);
+
+    const monthlyData = [];
+
+    if (range === "All") {
+      const firstTransaction = await Transaction.findOne({
+        user: req.user.id,
+        date: { $lt: endDate },
+      })
+        .sort({ date: 1 })
+        .select("date");
+
+      if (firstTransaction) {
+        const firstDate = firstTransaction.date;
+
+        let year = firstDate.getUTCFullYear();
+        let month = firstDate.getUTCMonth() + 1;
+
+        while (
+          year < currentYear ||
+          (year === currentYear && month <= currentMonth)
+        ) {
+          const income = monthlyTotals.find(
+            (item) =>
+              item._id.year === year &&
+              item._id.month === month &&
+              item._id.type === "income",
+          );
+
+          const expense = monthlyTotals.find(
+            (item) =>
+              item._id.year === year &&
+              item._id.month === month &&
+              item._id.type === "expense",
+          );
+
+          monthlyData.push({
+            year,
+            month,
+            income: income?.total || 0,
+            expense: expense?.total || 0,
+          });
+
+          month++;
+
+          if (month > 12) {
+            month = 1;
+            year++;
+          }
+        }
+      }
+    } else {
+      const months = range === "1Y" ? 12 : 6;
+
+      for (let i = months - 1; i >= 0; i--) {
+        const date = new Date(Date.UTC(currentYear, currentMonth - 1 - i, 1));
+
+        const year = date.getUTCFullYear();
+        const month = date.getUTCMonth() + 1;
+
+        const income = monthlyTotals.find(
+          (item) =>
+            item._id.year === year &&
+            item._id.month === month &&
+            item._id.type === "income",
+        );
+
+        const expense = monthlyTotals.find(
+          (item) =>
+            item._id.year === year &&
+            item._id.month === month &&
+            item._id.type === "expense",
+        );
+
+        monthlyData.push({
+          year,
+          month,
+          income: income?.total || 0,
+          expense: expense?.total || 0,
+        });
+      }
+    }
+
+    const currentMonthData = monthlyData.find(
+      (item) => item.year === currentYear && item.month === currentMonth,
+    );
+
+    return res.status(200).json({
+      success: true,
+      monthlyData,
+      currentMonthExpense: currentMonthData?.expense || 0,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
 //=============================UpdateTransaction======================================
 
 export const updateTransaction = async (req, res) => {
   try {
-    const { title, amount, type, category, description, date } = req.body;
+    const validation = transactionSchema.safeParse(req.body);
+
+    if (!validation.success) {
+      return res.status(400).json({
+        success: false,
+        message: "Validation failed",
+        errors: validation.error.issues.map((issue) => ({
+          field: issue.path.join("."),
+          message: issue.message,
+        })),
+      });
+    }
+
+    const { title, amount, type, category, description, date } =
+      validation.data;
+
     const transaction = await Transaction.findOneAndUpdate(
       {
         _id: req.params.id,

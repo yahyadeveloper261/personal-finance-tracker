@@ -1,4 +1,6 @@
 import { useEffect, useState, useRef } from "react";
+import { useForm } from "react-hook-form";
+
 import { profile, updateImage, updateProfile } from "../services/userApi";
 
 import {
@@ -14,21 +16,35 @@ import {
 
 export default function Settings() {
   const [pro, setPro] = useState(null);
-  const [name, setName] = useState("");
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(false);
 
   const fileRef = useRef(null);
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    setError: setFieldError,
+    formState: { errors, isSubmitting },
+  } = useForm({
+    defaultValues: {
+      name: "",
+    },
+  });
 
   // Get Profile
   useEffect(() => {
     const getProfile = async () => {
       try {
         const res = await profile();
+
         setPro(res?.profile);
-        setName(res?.profile?.name || "");
+
+        reset({
+          name: res?.profile?.name || "",
+        });
       } catch (error) {
         console.log("Profile Error:", error);
       } finally {
@@ -37,7 +53,7 @@ export default function Settings() {
     };
 
     getProfile();
-  }, []);
+  }, [reset]);
 
   // Upload Profile Image
   const handleImageUpload = async (e) => {
@@ -70,7 +86,7 @@ export default function Settings() {
       alert("Profile image updated successfully");
     } catch (error) {
       console.log("Image Upload Error:", error);
-      alert(error.message);
+      alert(error.message || "Image upload failed");
     } finally {
       setUploading(false);
       e.target.value = "";
@@ -78,42 +94,55 @@ export default function Settings() {
   };
 
   // Save Name
-  const handleSaveName = async () => {
-    if (!name.trim()) {
-      alert("Name is required");
-      return;
-    }
+  const handleSaveName = async (formData) => {
+    const updatedName = formData.name.trim();
 
-    if (name.trim() === pro.name) {
+    if (updatedName === pro.name) {
       setEditing(false);
       return;
     }
 
     try {
-      setSaving(true);
-
-      const res = await updateProfile(name.trim());
+      const res = await updateProfile(updatedName);
 
       setPro((prev) => ({
         ...prev,
         ...res.profile,
       }));
 
-      setName(res.profile.name);
+      reset({
+        name: res.profile.name,
+      });
+
       setEditing(false);
 
       alert("Name updated successfully");
     } catch (error) {
       console.log("Update Name Error:", error);
-      alert(error.message);
-    } finally {
-      setSaving(false);
+
+      // Backend field-level errors
+      if (Array.isArray(error.errors) && error.errors.length > 0) {
+        const nameError = error.errors.find((item) => item.field === "name");
+
+        if (nameError) {
+          setFieldError("name", {
+            type: "server",
+            message: nameError.message,
+          });
+          return;
+        }
+      }
+
+      alert(error.message || "Failed to update name");
     }
   };
 
   // Cancel Editing
   const handleCancel = () => {
-    setName(pro.name);
+    reset({
+      name: pro.name,
+    });
+
     setEditing(false);
   };
 
@@ -137,6 +166,7 @@ export default function Settings() {
     <div className="min-h-screen bg-slate-50 p-4 sm:p-6 lg:p-8">
       <div className="max-w-5xl mx-auto">
         {/* Header */}
+
         <div className="mb-8">
           <div className="flex items-center gap-3">
             <div className="bg-emerald-100 p-3 rounded-xl">
@@ -147,6 +177,7 @@ export default function Settings() {
               <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">
                 Settings
               </h1>
+
               <p className="text-sm text-slate-500 mt-1">
                 Manage your account and preferences
               </p>
@@ -155,11 +186,13 @@ export default function Settings() {
         </div>
 
         {/* Profile Card */}
+
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
           <div className="p-5 sm:p-7 border-b border-slate-100">
             <h2 className="text-lg font-bold text-slate-800">
               Profile Information
             </h2>
+
             <p className="text-sm text-slate-500 mt-1">
               Your personal account details
             </p>
@@ -167,6 +200,7 @@ export default function Settings() {
 
           <div className="p-5 sm:p-7">
             {/* Avatar */}
+
             <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-8">
               <div className="relative w-20 h-20 shrink-0">
                 {pro.image ? (
@@ -193,7 +227,7 @@ export default function Settings() {
                   type="button"
                   title="Upload profile picture"
                   disabled={uploading}
-                  onClick={() => fileRef.current.click()}
+                  onClick={() => fileRef.current?.click()}
                   className="absolute -bottom-2 -right-2 bg-emerald-600 text-white p-2 rounded-full shadow-md hover:bg-emerald-700 disabled:opacity-50"
                 >
                   <Camera size={15} />
@@ -218,67 +252,94 @@ export default function Settings() {
             </div>
 
             {/* Fields */}
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               {/* Full Name */}
+
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-2">
                   Full Name
                 </label>
 
-                <div className="relative">
-                  <UserRound
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-                    size={19}
-                  />
+                <form onSubmit={handleSubmit(handleSaveName)} noValidate>
+                  <div className="relative">
+                    <UserRound
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                      size={19}
+                    />
 
-                  <input
-                    type="text"
-                    value={name}
-                    readOnly={!editing}
-                    onChange={(e) => setName(e.target.value)}
-                    className={`w-full pl-11 pr-4 py-3 rounded-xl border outline-none transition ${
-                      editing
-                        ? "border-emerald-300 bg-white focus:ring-2 focus:ring-emerald-100"
-                        : "border-slate-200 bg-slate-50 text-slate-700"
-                    }`}
-                  />
-                </div>
+                    <input
+                      type="text"
+                      readOnly={!editing}
+                      aria-invalid={!!errors.name}
+                      {...register("name", {
+                        setValueAs: (value) => value.trim(),
 
-                {!editing ? (
-                  <button
-                    type="button"
-                    onClick={() => setEditing(true)}
-                    className="mt-3 flex items-center gap-2 text-sm font-semibold text-emerald-600 hover:text-emerald-700"
-                  >
-                    <Pencil size={15} />
-                    Edit Name
-                  </button>
-                ) : (
-                  <div className="flex flex-wrap gap-3 mt-3">
-                    <button
-                      type="button"
-                      onClick={handleSaveName}
-                      disabled={saving}
-                      className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 disabled:opacity-50"
-                    >
-                      <Save size={15} />
-                      {saving ? "Saving..." : "Save"}
-                    </button>
+                        required: "Name is required",
 
-                    <button
-                      type="button"
-                      onClick={handleCancel}
-                      disabled={saving}
-                      className="flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50"
-                    >
-                      <X size={15} />
-                      Cancel
-                    </button>
+                        minLength: {
+                          value: 3,
+                          message: "Name must be at least 3 characters",
+                        },
+
+                        maxLength: {
+                          value: 40,
+                          message: "Name cannot exceed 40 characters",
+                        },
+                      })}
+                      className={`w-full pl-11 pr-4 py-3 rounded-xl border outline-none transition ${
+                        editing
+                          ? errors.name
+                            ? "border-red-400 bg-white focus:ring-2 focus:ring-red-100"
+                            : "border-emerald-300 bg-white focus:ring-2 focus:ring-emerald-100"
+                          : "border-slate-200 bg-slate-50 text-slate-700"
+                      }`}
+                    />
                   </div>
-                )}
+
+                  {errors.name && (
+                    <p className="text-red-500 text-xs mt-2">
+                      {errors.name.message}
+                    </p>
+                  )}
+
+                  {!editing ? (
+                    <button
+                      type="button"
+                      onClick={() => setEditing(true)}
+                      className="mt-3 flex items-center gap-2 text-sm font-semibold text-emerald-600 hover:text-emerald-700"
+                    >
+                      <Pencil size={15} />
+                      Edit Name
+                    </button>
+                  ) : (
+                    <div className="flex flex-wrap gap-3 mt-3">
+                      <button
+                        type="submit"
+                        disabled={isSubmitting}
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 disabled:opacity-50"
+                      >
+                        <Save size={15} />
+
+                        {isSubmitting ? "Saving..." : "Save"}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleCancel}
+                        disabled={isSubmitting}
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 disabled:opacity-50"
+                      >
+                        <X size={15} />
+                        Cancel
+                      </button>
+                    </div>
+                  )}
+                </form>
               </div>
 
               {/* Email */}
+
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-2">
                   Email Address
@@ -305,6 +366,7 @@ export default function Settings() {
             </div>
 
             {/* Account Status */}
+
             <div className="mt-7 p-4 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center gap-3">
               <ShieldCheck className="text-emerald-600" size={23} />
 

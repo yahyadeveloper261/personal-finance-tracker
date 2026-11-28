@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { exportCSV } from "../utils/exportCSV";
 
 // API Services
 import { getDashboard } from "../services/dashboardApi";
@@ -6,8 +7,8 @@ import {
   getTransactions,
   deleteTransaction,
   getExpenseCategories,
+  getMonthlyTransactionStats,
 } from "../services/transactionApi";
-import { getBudget } from "../services/budgetApi";
 
 // Dashboard Components
 import SummaryCards from "../components/dashboard/SummaryCards";
@@ -30,9 +31,11 @@ export default function Dashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [range, setRange] = useState("6M");
+
   const [transactions, setTransactions] = useState([]);
-  const [budgetData, setBudgetData] = useState([]);
   const [categoryExpense, setCategoryExpense] = useState([]);
+  const [monthlyStats, setMonthlyStats] = useState([]);
+
   const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -40,6 +43,7 @@ export default function Dashboard() {
   const [category, setCategory] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+
   const limit = 8;
 
   // Dashboard Summary Data
@@ -48,49 +52,70 @@ export default function Dashboard() {
   const totalBalance = Number(data?.totalBalance ?? 0);
   const totalSavings = totalIncome - totalExpense;
 
+  // Budget Data From Backend
+  const budget = Number(data?.totalBudget || 0);
+  const spent = Number(data?.currentMonthExpense || 0);
+  const budgetPercent = Number(data?.budgetPercent || 0);
+  const remaining = budget - spent;
+
   // Chart Colors
   const colors = ["#10B981", "#8B5CF6", "#F59E0B", "#3B82F6", "#F472B6"];
 
-  // Expense Categories Aggregation
-  useEffect(() => {
-    const fetchExpense = async () => {
-      try {
-        const res = await getExpenseCategories();
+  // Get Dashboard Data
+  const fetchDashboard = async () => {
+    try {
+      const res = await getDashboard();
+      setData(res);
+    } catch (error) {
+      console.log("Dashboard Error:", error);
+    }
+  };
 
-        setCategoryExpense(res.categories || []);
-      } catch (error) {
-        console.log(error);
+  // Get Expense Categories
+  const fetchExpense = async () => {
+    try {
+      const res = await getExpenseCategories();
+      setCategoryExpense(res.categories || []);
+    } catch (error) {
+      console.log("Expense Categories Error:", error);
+    }
+  };
+
+  // Get Monthly Transaction Stats
+  const fetchMonthlyStats = async () => {
+    try {
+      const res = await getMonthlyTransactionStats(range);
+      setMonthlyStats(res.monthlyData || []);
+    } catch (error) {
+      console.log("Monthly Stats Error:", error);
+    }
+  };
+
+  // Initial Dashboard Data
+  useEffect(() => {
+    const loadDashboard = async () => {
+      try {
+        await Promise.all([fetchDashboard(), fetchExpense()]);
+      } finally {
+        setLoading(false);
       }
     };
 
-    fetchExpense();
+    loadDashboard();
   }, []);
 
-  // Convert Aggregation Data for Chart
-  const categoryData = categoryExpense.map((item, index) => ({
-    name: item._id || "Others",
-    value: Number(item.total),
-    color: colors[index % colors.length],
-    percentage: totalExpense
-      ? Math.round((Number(item.total) / totalExpense) * 100)
-      : 0,
-  }));
-
-  // Get Budget
+  // Monthly Chart Data
   useEffect(() => {
-    const fetchBudget = async () => {
-      try {
-        const res = await getBudget();
-        setBudgetData(res.budget || []);
-      } catch (error) {
-        console.log(error);
-      }
-    };
+    fetchMonthlyStats();
+  }, [range]);
 
-    fetchBudget();
-  }, []);
+  // Reset Pagination When Filters Change
+  useEffect(() => {
+    setPage(1);
+    setTransactions([]);
+  }, [search, type, category, startDate, endDate]);
 
-  // Get Transactions with Pagination
+  // Get Transactions With Pagination
   useEffect(() => {
     const fetchTransaction = async () => {
       try {
@@ -103,6 +128,7 @@ export default function Dashboard() {
           startDate,
           endDate,
         });
+
         const newItems = Array.isArray(res?.transactions)
           ? res.transactions
           : [];
@@ -113,7 +139,7 @@ export default function Dashboard() {
 
         setTotalPages(res?.totalPages ?? 1);
       } catch (error) {
-        console.log(error);
+        console.log("Transaction Error:", error);
       } finally {
         setLoading(false);
       }
@@ -121,22 +147,6 @@ export default function Dashboard() {
 
     fetchTransaction();
   }, [page, search, type, category, startDate, endDate]);
-
-  // Get Dashboard Data
-  useEffect(() => {
-    const fetchDashboard = async () => {
-      try {
-        const res = await getDashboard();
-        setData(res);
-      } catch (error) {
-        console.log(error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchDashboard();
-  }, []);
 
   // Delete Transaction
   const handleDelete = async (id) => {
@@ -148,69 +158,84 @@ export default function Dashboard() {
       await deleteTransaction(id);
 
       setTransactions((prev) => prev.filter((item) => item._id !== id));
+
+      // Refresh Dashboard Data
+      await Promise.all([
+        fetchDashboard(),
+        fetchExpense(),
+        fetchMonthlyStats(),
+      ]);
     } catch (error) {
+      console.log("Delete Error:", error);
       alert("Transaction delete failed");
     }
   };
 
-  // Monthly Income vs Expense
-  const monthlyTotals = {};
+  // Export Transactions To CSV
+  const handleExportCSV = async () => {
+    try {
+      const exportLimit = 100;
 
-  transactions.forEach((item) => {
-    const date = new Date(item.date);
+      const firstResponse = await getTransactions({
+        type,
+        category,
+        search,
+        startDate,
+        endDate,
+        page: 1,
+        limit: exportLimit,
+      });
 
-    if (isNaN(date.getTime())) return;
+      let allTransactions = firstResponse.transactions || [];
+      const pages = firstResponse.totalPages || 1;
 
-    const key = `${date.getFullYear()}-${date.getMonth()}`;
+      for (let currentPage = 2; currentPage <= pages; currentPage++) {
+        const response = await getTransactions({
+          type,
+          category,
+          search,
+          startDate,
+          endDate,
+          page: currentPage,
+          limit: exportLimit,
+        });
 
-    if (!monthlyTotals[key]) {
-      monthlyTotals[key] = {
-        month: date.toLocaleString("en-US", {
-          month: "short",
-        }),
-        income: 0,
-        expense: 0,
-        year: date.getFullYear(),
-        monthIndex: date.getMonth(),
-      };
+        allTransactions = [
+          ...allTransactions,
+          ...(response.transactions || []),
+        ];
+      }
+
+      exportCSV(allTransactions, "dashboard-transactions");
+    } catch (error) {
+      console.error("CSV Export Error:", error);
+      alert("Failed to export transactions");
     }
+  };
 
-    if (item.type === "income") {
-      monthlyTotals[key].income += Number(item.amount);
-    } else if (item.type === "expense") {
-      monthlyTotals[key].expense += Number(item.amount);
-    }
-  });
+  // Expense Categories Chart Data
+  const categoryData = categoryExpense.map((item, index) => ({
+    name: item._id || "Others",
+    value: Number(item.total),
+    color: colors[index % colors.length],
+    percentage: totalExpense
+      ? Math.round((Number(item.total) / totalExpense) * 100)
+      : 0,
+  }));
 
-  const allChartData = Object.values(monthlyTotals).sort(
-    (a, b) => a.year - b.year || a.monthIndex - b.monthIndex,
-  );
-
-  const chartData = allChartData.slice(-6);
-  const yearlyData = allChartData.slice(-12);
-
-  const displayedChart =
-    range === "6M" ? chartData : range === "1Y" ? yearlyData : allChartData;
-
-  // Budget Calculation
-  const budget = budgetData.reduce((sum, item) => sum + Number(item.amount), 0);
-  const spent = transactions
-    .filter((item) => {
-      const date = new Date(item.date);
-      const now = new Date();
-
-      return (
-        item.type === "expense" &&
-        date.getMonth() === now.getMonth() &&
-        date.getFullYear() === now.getFullYear()
-      );
-    })
-    .reduce((sum, item) => sum + Number(item.amount), 0);
-
-  const remaining = budget - spent;
-
-  const budgetPercent =
-    budget > 0 ? Math.min(Math.round((spent / budget) * 100), 100) : 0;
+  // Monthly Income vs Expense Chart Data
+  const displayedChart = monthlyStats.map((item) => ({
+    month: new Date(Date.UTC(item.year, item.month - 1, 1)).toLocaleString(
+      "en-US",
+      {
+        month: "short",
+      },
+    ),
+    income: Number(item.income || 0),
+    expense: Number(item.expense || 0),
+    year: item.year,
+    monthIndex: item.month,
+  }));
 
   // Dashboard Summary Cards
   const summary = [
@@ -336,6 +361,7 @@ export default function Dashboard() {
           setPage={setPage}
           totalPages={totalPages}
           handleDelete={handleDelete}
+          handleExportCSV={handleExportCSV}
           type={type}
           setType={setType}
           category={category}

@@ -1,6 +1,7 @@
 import express from "express";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import { validate } from "../middleware/validates.js";
+import { logout, getMe } from "../controllers/authController.js";
 import {
   register,
   login,
@@ -13,6 +14,7 @@ import {
   updateTransaction,
   deleteTransaction,
   getExpensiveCategories,
+  getMonthlyTransactionStats,
 } from "../controllers/transactionController.js";
 
 import {
@@ -37,6 +39,11 @@ router.post("/login", validate(loginSchema), login);
 router.post("/refresh", refreshUserAccessToken);
 
 router.get("/my/transactions", authMiddleware, getTransactions);
+router.get(
+  "/my/transactions/monthly-stats",
+  authMiddleware,
+  getMonthlyTransactionStats,
+);
 router.get("/expense/categories", authMiddleware, getExpensiveCategories);
 router.post("/create/transaction", authMiddleware, createTransaction);
 router.put("/transaction/:id", authMiddleware, updateTransaction);
@@ -55,5 +62,8 @@ router.put(
   uploadImage,
 );
 router.put("/updateName", authMiddleware, updateProfile);
+
+router.post("/logout", authMiddleware, logout);
+router.get("/me", authMiddleware, getMe);
 
 export default router;
