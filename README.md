@@ -178,7 +178,7 @@ Follow these steps to run the project locally.
 ### 1. Clone Repository
 
 ```bash
-git clone YOUR_GITHUB_REPOSITORY_URL
+git clone https://github.com/yahyadeveloper261/personal-finance-tracker.git
 ```
 
 ### 2. Navigate to Project Folder
@@ -302,15 +302,6 @@ The project uses environment variables to manage database connections, authentic
 - Never upload actual `.env` files or private credentials to GitHub.
 - Use `.env.example` files as configuration templates.
 - Keep database credentials and JWT secrets private.
-
-## 📱 Responsive Design
-
-The application supports:
-
-- Desktop
-- Laptop
-- Tablet
-- Mobile Devices
 
 ## 🎥 Project Demo Video
 
