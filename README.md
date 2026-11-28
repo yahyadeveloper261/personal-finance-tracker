@@ -1,16 +1,16 @@
-# Personal Finance Tracker 💰
+# 💰 Personal Finance Tracker
 
-A full-stack Personal Finance Tracker built with the MERN stack. This application helps users manage their income, expenses, budgets, savings, and monitor their financial activities through an interactive dashboard.
+A full-stack **Personal Finance Tracker** built with the MERN Stack. This application helps users manage their income, expenses, budgets, and savings while monitoring their financial activities through an interactive dashboard.
 
 ## 🚀 Features
 
 - User Registration and Login
 - JWT Authentication with Access and Refresh Tokens
 - Secure User Authentication
-- Dashboard with Financial Summary
+- Interactive Financial Dashboard
 - Income Management
 - Expense Management
-- Create, Update and Delete Transactions
+- Create, Update, and Delete Transactions
 - Transaction History
 - Budget Management
 - Budget Notifications
@@ -18,63 +18,77 @@ A full-stack Personal Finance Tracker built with the MERN stack. This applicatio
 - Income and Expense Charts
 - User Profile Management
 - Profile Image Upload using Cloudinary
-- Responsive UI for Mobile, Tablet and Desktop
+- Responsive UI for Mobile, Tablet, and Desktop
 
-## Application Screenshorts
+## 🌐 Live Demo
 
-### dashbaord
-![alt text](Screenshot_24-11-2026_73431_personal-finance-tracker-eta-sable.vercel.app.jpeg)
+[**Visit Live Website**](https://personal-finance-tracker-eta-sable.vercel.app/)
+
+## 📸 Application Screenshots
+
+### Dashboard
+![Dashboard](Screenshot_24-11-2026_73431_personal-finance-tracker-eta-sable.vercel.app.jpeg)
 
 ### Expense Management
-![alt text](Screenshot_24-11-2026_74133_personal-finance-tracker-eta-sable.vercel.app.jpeg)
+![Expense Management](Screenshot_24-11-2026_74133_personal-finance-tracker-eta-sable.vercel.app.jpeg)
 
-### Expense Management
-![alt text](Screenshot_24-11-2026_73457_personal-finance-tracker-eta-sable.vercel.app.jpeg)
+![Expense Management](Screenshot_24-11-2026_73457_personal-finance-tracker-eta-sable.vercel.app.jpeg)
 
 ### Transactions
-![alt text](Screenshot_24-11-2026_73755_personal-finance-tracker-eta-sable.vercel.app.jpeg)
+![Transactions](Screenshot_24-11-2026_73755_personal-finance-tracker-eta-sable.vercel.app.jpeg)
 
 ### Budget Management
-![alt text](Screenshot_24-11-2026_73623_personal-finance-tracker-eta-sable.vercel.app.jpeg)
+![Budget Management](Screenshot_24-11-2026_73623_personal-finance-tracker-eta-sable.vercel.app.jpeg)
 
 ### Settings
-![alt text](Screenshot_24-11-2026_73852_personal-finance-tracker-eta-sable.vercel.app.jpeg)
+![Settings](Screenshot_24-11-2026_73852_personal-finance-tracker-eta-sable.vercel.app.jpeg)
 
+## 📱 Responsive Design
 
-##### Responsive 
+The application is designed to provide a smooth experience across different screen sizes.
 
-## Destok
+### 💻 Desktop
 
-## dashbaord
-![alt text](destok.dashboard.png)
-## Income
-![alt text](destok.income.png)
-## Expense
-![alt text](destok.expense.png)
-## Budget
-![alt text](destok.budget.png)
-## Transactions
-![alt text](destok.transaction.png)
-## Profille/Setting
-![alt text](destok.setting.png)
+#### Dashboard
+![Desktop Dashboard](destok.dashboard.png)
 
+#### Income
+![Desktop Income](destok.income.png)
 
-### Mobile
+#### Expense
+![Desktop Expense](destok.expense.png)
 
-## dashbaord
-![alt text](m.dashbaord.png)
-## Income
-![alt text](m.income.png)
-## Expense
-![alt text](m.expense.png)
-## Budget
-![alt text](m.budget.png)
-## Transactions
-![alt text](m.transaction.png)
-## Profille/Setting
-![alt text](m.profile,.png)
-## Notification
-![alt text](m.notification.png)
+#### Budget
+![Desktop Budget](destok.budget.png)
+
+#### Transactions
+![Desktop Transactions](destok.transaction.png)
+
+#### Profile / Settings
+![Desktop Settings](destok.setting.png)
+
+### 📱 Mobile
+
+#### Dashboard
+![Mobile Dashboard](m.dashbaord.png)
+
+#### Income
+![Mobile Income](m.income.png)
+
+#### Expense
+![Mobile Expense](m.expense.png)
+
+#### Budget
+![Mobile Budget](m.budget.png)
+
+#### Transactions
+![Mobile Transactions](m.transaction.png)
+
+#### Profile / Settings
+![Mobile Profile](m.profile,.png)
+
+#### Notifications
+![Mobile Notifications](m.notification.png)
 
 ## 🛠️ Tech Stack
 
@@ -122,13 +136,15 @@ personal-finance-tracker/
 
 ## ⚙️ Installation & Setup
 
+Follow these steps to run the project locally.
+
 ### 1. Clone Repository
 
 ```bash
 git clone YOUR_GITHUB_REPOSITORY_URL
 ```
 
-### 2. Navigate to Project
+### 2. Navigate to Project Folder
 
 ```bash
 cd personal-finance-tracker
@@ -150,25 +166,26 @@ npm install
 
 ### 5. Configure Environment Variables
 
-Create a `.env` file inside the server folder by copying `.env.example`.
+Create a `.env` file inside the `server` folder using `.env.example` as a reference.
 
 Add your own credentials:
 
 ```env
-PORT=
-HOST=
-MONGO_URI=
-FRONTED_URL=
-JWT_SECRET=
-JWT_REFRESH=
-CLOUDINARY_CLOUD_NAME=
-CLOUDINARY_API_KEY=
-CLOUDINARY_API_SECRET=
+PORT=5000
+HOST=0.0.0.0
+MONGO_URI=your_mongodb_connection_string
+FRONTED_URL=your_frontend_url
+JWT_SECRET=your_access_token_secret
+JWT_REFRESH=your_refresh_token_secret
+CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
+CLOUDINARY_API_KEY=your_cloudinary_api_key
+CLOUDINARY_API_SECRET=your_cloudinary_api_secret
 ```
 
 **Required Services:**
-- MongoDB: For database connection.
-- Cloudinary: For profile image uploads.
+
+- MongoDB: Database connection.
+- Cloudinary: Profile image uploads.
 
 ### 6. Start Backend Server
 
@@ -180,7 +197,7 @@ npm run dev
 
 ### 7. Open a New Terminal
 
-Navigate to the frontend folder:
+Navigate to the project root and then open the client folder:
 
 ```bash
 cd client
@@ -194,19 +211,13 @@ npm install
 
 ### 9. Configure Frontend Environment Variables
 
-Create a `.env` file inside the frontend folder using `.env.example`.
-
-```env
-VITE_API_URL=
-```
-
-Add your backend API base URL.
-
-For local development, it may look like:
+Create a `.env` file inside the `client` folder using `.env.example`.
 
 ```env
 VITE_API_URL=http://localhost:5000/api
 ```
+
+For production, add your deployed backend API URL.
 
 ### 10. Start Frontend
 
@@ -222,22 +233,51 @@ Open the local URL provided by Vite, usually:
 http://localhost:5173
 ```
 
-## 🔐 Environment Variables
+## 📡 API Documentation
 
-The project requires environment variables for database connection, authentication, frontend/backend communication, and image uploads.
+The backend provides RESTful APIs for authentication, dashboard, transactions, budgets, profiles, and notifications.
 
-Never upload your actual `.env` files or private credentials to GitHub.
+### Postman Collection
 
-Use the provided `.env.example` files as templates.
+Import the Postman collection to explore and test the API endpoints.
+
+[**View / Download Postman Collection**](https://go.postman.co/workspace/496d4bc1-836a-4c81-841c-3311f8375caf/collection/51445128-810f6812-b642-410b-88d4-4b2a99e6ea7b)
+
+### API Base URL
+
+```text
+http://localhost:5000/api
+```
+
+### Available API Modules
+
+- Authentication
+- Dashboard
+- Transactions
+- Budgets
+- User Profile
+- Notifications
+
+## 🔐 Environment Variables & Security
+
+The project uses environment variables to manage database connections, authentication secrets, frontend/backend communication, and image uploads.
+
+- Never upload actual `.env` files or private credentials to GitHub.
+- Use `.env.example` files as configuration templates.
+- Keep database credentials and JWT secrets private.
 
 ## 📱 Responsive Design
 
-The application is designed to work across:
+The application supports:
 
 - Desktop
 - Laptop
 - Tablet
 - Mobile Devices
+
+## 🎥 Project Demo Video
+
+[Watch Project Demo](YOUR_DEMO_VIDEO_URL)
 
 ## 👨‍💻 Author
 
@@ -245,8 +285,7 @@ The application is designed to work across:
 
 MERN Stack Developer
 
-GitHub: https://github.com/yahyadeveloper261
-
+- GitHub: [yahyadeveloper261](https://github.com/yahyadeveloper261)
 
 ## 📄 License
 
@@ -254,7 +293,4 @@ Copyright (c) 2026 Muhammad Yahya.
 
 All rights reserved.
 
-This project is proprietary software. Unauthorized copying,
-modification, distribution, or commercial use of this project's
-source code is prohibited without prior written permission
-from the copyright owner.
+This project is proprietary software. Unauthorized copying, modification, distribution, or commercial use of this project's source code is prohibited without prior written permission from the copyright owner.
