@@ -305,7 +305,7 @@ The project uses environment variables to manage database connections, authentic
 
 ## 🎥 Project Demo Video
 
-[Watch Project Demo](YOUR_DEMO_VIDEO_URL)
+[Watch Project Demo](https://youtu.be/HQGo0-vI-bU?si=P82qFs7SiyJBS1tQ)
 
 ## 👨‍💻 Author
 
